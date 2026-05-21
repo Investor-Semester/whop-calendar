@@ -89,7 +89,8 @@ export default function CalendarView({
   }
 
   const [copied, setCopied] = useState(false);
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://whop-calendar-mu.vercel.app";
+  const rawAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://whop-calendar-mu.vercel.app";
+  const appUrl = rawAppUrl.startsWith("http") ? rawAppUrl : `https://${rawAppUrl}`;
   const feedUrl = `${appUrl}/api/calendar/${experienceId}/calendar.ics`;
 
   function handleCopy() {
