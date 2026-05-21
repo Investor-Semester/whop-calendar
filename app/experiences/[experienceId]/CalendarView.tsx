@@ -88,6 +88,19 @@ export default function CalendarView({
     setSelectedEvent(null);
   }
 
+  const [copied, setCopied] = useState(false);
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://whop-calendar-mu.vercel.app";
+  const feedUrl = `${appUrl}/api/calendar/${experienceId}/feed`;
+  const webcalUrl = feedUrl.replace(/^https?:\/\//, "webcal://");
+  const googleUrl = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcalUrl)}`;
+
+  function handleCopy() {
+    navigator.clipboard.writeText(feedUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white">
       <div className="max-w-5xl mx-auto px-4 py-6">
@@ -162,6 +175,39 @@ export default function CalendarView({
           onSave={editingEvent ? handleEdit : handleCreate}
         />
       )}
+
+      {/* ── Calendar Sync Footer ── */}
+      <div className="border-t border-[#1e1e1e] mt-2 pt-6 pb-8">
+        <div className="max-w-5xl mx-auto px-4">
+          <p className="text-xs font-medium text-[#555] uppercase tracking-wide mb-2">Sync this calendar</p>
+          <p className="text-xs text-[#444] mb-4">Subscribe once — new events and changes appear automatically in your calendar app.</p>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={googleUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+              Sync to Google Calendar
+            </a>
+            <a
+              href={webcalUrl}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+              Subscribe in Apple / iCal
+            </a>
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-medium bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-colors"
+            >
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+              {copied ? "Copied!" : "Copy feed URL"}
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
