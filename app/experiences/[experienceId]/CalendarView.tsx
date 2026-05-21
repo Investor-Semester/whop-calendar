@@ -4,7 +4,7 @@ import { useState, useCallback } from "react";
 import type { CalendarEvent } from "@/lib/events-store";
 import Calendar from "@/components/Calendar";
 import EventModal from "@/components/EventModal";
-import CreateEventModal from "@/components/CreateEventModal";
+import CreateEventModal, { type CreateEventFormData } from "@/components/CreateEventModal";
 
 interface CalendarViewProps {
   experienceId: string;
@@ -60,15 +60,7 @@ export default function CalendarView({
   }
 
   // ── Create event ──────────────────────────────────────────────────────────
-  async function handleCreate(formData: {
-    title: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    location?: string;
-    maxAttendees?: number | null;
-    color: CalendarEvent["color"];
-  }) {
+  async function handleCreate(formData: CreateEventFormData) {
     const res = await fetch("/api/events", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -82,15 +74,7 @@ export default function CalendarView({
   }
 
   // ── Edit event ────────────────────────────────────────────────────────────
-  async function handleEdit(formData: {
-    title: string;
-    description: string;
-    startDate: string;
-    endDate: string;
-    location?: string;
-    maxAttendees?: number | null;
-    color: CalendarEvent["color"];
-  }) {
+  async function handleEdit(formData: CreateEventFormData) {
     if (!editingEvent) return;
     const res = await fetch(`/api/events/${editingEvent.id}`, {
       method: "PATCH",
