@@ -67,7 +67,10 @@ export interface UpdateEventInput {
   color?: EventColor;
 }
 
-const DATA_DIR = path.join(process.cwd(), "data");
+// Use /tmp on Vercel (serverless has read-only fs), otherwise local data/ dir
+const DATA_DIR = process.env.VERCEL
+  ? "/tmp/whop-calendar-data"
+  : path.join(process.cwd(), "data");
 const EVENTS_FILE = path.join(DATA_DIR, "events.json");
 
 function ensureDataDir() {
