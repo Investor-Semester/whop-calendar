@@ -4,7 +4,11 @@ import { getEventsByExperience, type CalendarEvent } from "@/lib/events-store";
 type Params = { params: Promise<{ experienceId: string }> };
 
 function icsEscape(str: string) {
-  return str.replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\n/g, "\\n");
+  return str
+    .replace(/\\/g, "\\\\")
+    .replace(/;/g, "\\;")
+    .replace(/,/g, "\\,")
+    .replace(/\n/g, "\\n");
 }
 
 function toICSDate(iso: string) {
@@ -26,24 +30,22 @@ function foldLine(line: string): string {
 function buildVEVENT(event: CalendarEvent): string {
   const lines: string[] = [
     "BEGIN:VEVENT",
+    `UID:${event.id}@whop-calendar`,
+    `DTSTAMP:${toICSDate(new Date().toISOString())}`,
     `DTSTART:${toICSDate(event.startDate)}`,
     `DTEND:${toICSDate(event.endDate)}`,
-    `DTSTAMP:${toICSDate(new Date().toISOString())}`,
-    `UID:${event.id}@whop-calendar`,
     `SUMMARY:${icsEscape(event.title)}`,
   ];
 
   if (event.description) {
     lines.push(`DESCRIPTION:${icsEscape(event.description)}`);
   }
+
   if (event.meetingLink) {
     lines.push(`URL:${event.meetingLink}`);
     lines.push(`LOCATION:${icsEscape(event.meetingLink)}`);
   } else if (event.location) {
     lines.push(`LOCATION:${icsEscape(event.location)}`);
-  }
-  if (event.imageUrl) {
-    lines.push(`IMAGE;VALUE=URI:${event.imageUrl}`);
   }
 
   lines.push("END:VEVENT");
@@ -56,27 +58,30 @@ export async function GET(_req: NextRequest, { params }: Params) {
   try {
     const events = await getEventsByExperience(experienceId);
 
-    const calName = "Community Events";
-    const vevents = events.length > 0 ? events.map(buildVEVENT).join("\r\n") + "\r\n" : "";
+    const vevents = events.map(buildVEVENT).join("\r\n");
 
-    const ics =
-      "BEGIN:VCALENDAR\r\n" +
-      "VERSION:2.0\r\n" +
-      "PRODID:-//Whop Calendar//EN\r\n" +
-      "CALSCALE:GREGORIAN\r\n" +
-      "METHOD:PUBLISH\r\n" +
-      `X-WR-CALNAME:${icsEscape(calName)}\r\n` +
-      "X-WR-TIMEZONE:UTC\r\n" +
-      "REFRESH-INTERVAL;VALUE=DURATION:PT1H\r\n" +
-      "X-PUBLISHED-TTL:PT1H\r\n" +
-      vevents +
-      "END:VCALENDAR\r\n";
+    const lines = [
+      "BEGIN:VCALENDAR",
+      "VERSION:2.0",
+      "PRODID:-//Whop Calendar//EN",
+      "CALSCALE:GREGORIAN",
+      "METHOD:PUBLISH",
+      "X-WR-CALNAME:Community Events",
+    ];
+
+    if (vevents) {
+      lines.push(vevents);
+    }
+
+    lines.push("END:VCALENDAR");
+
+    const ics = lines.join("\r\n") + "\r\n";
 
     return new NextResponse(ics, {
       status: 200,
       headers: {
         "Content-Type": "text/calendar; charset=utf-8",
-        "Content-Disposition": 'attachment; filename="calendar.ics"',
+        "Content-Disposition": 'inline; filename="calendar.ics"',
         "Cache-Control": "no-cache, no-store, must-revalidate",
         "Access-Control-Allow-Origin": "*",
       },
