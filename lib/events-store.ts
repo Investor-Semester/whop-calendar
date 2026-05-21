@@ -33,6 +33,7 @@ export interface CalendarEvent {
   createdAt: string;
   color: EventColor;
   recurringBaseId?: string;
+  excludedDates?: string[]; // ISO date strings of individual skipped occurrences
 }
 
 export type EventColor = "indigo" | "rose" | "emerald" | "amber" | "sky" | "violet";
@@ -121,11 +122,16 @@ function expandRecurringEvent(base: CalendarEvent): CalendarEvent[] {
     if (endDate && current > new Date(endDate)) break;
     if (current > windowEnd) break;
 
-    if (current >= windowStart) {
+    const occStart = current.toISOString();
+    const isExcluded = base.excludedDates?.some(
+      (d) => new Date(d).toDateString() === current.toDateString()
+    );
+
+    if (current >= windowStart && !isExcluded) {
       occurrences.push({
         ...base,
         id: idx === 0 ? base.id : `${base.id}_occ${idx}`,
-        startDate: current.toISOString(),
+        startDate: occStart,
         endDate: occEnd.toISOString(),
         recurringBaseId: base.id,
       });
@@ -206,6 +212,47 @@ export async function deleteEvent(eventId: string): Promise<boolean> {
   const filtered = events.filter((e) => e.id !== baseId);
   if (filtered.length === events.length) return false;
   await persistEvents(filtered);
+  return true;
+}
+
+// Delete a single occurrence by excluding its date
+export async function deleteEventOccurrence(eventId: string, occurrenceDate: string): Promise<boolean> {
+  const events = await readAllEvents();
+  const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
+  const idx = events.findIndex((e) => e.id === baseId);
+  if (idx === -1) return false;
+  const excluded = events[idx].excludedDates ?? [];
+  excluded.push(occurrenceDate);
+  events[idx] = { ...events[idx], excludedDates: excluded };
+  await persistEvents(events);
+  return true;
+}
+
+// Delete this occurrence and all future ones by truncating the recurrence end date
+export async function deleteEventFuture(eventId: string, fromDate: string): Promise<boolean> {
+  const events = await readAllEvents();
+  const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
+  const idx = events.findIndex((e) => e.id === baseId);
+  if (idx === -1) return false;
+  const base = events[idx];
+
+  // If this is the very first occurrence, delete the whole event
+  if (new Date(fromDate).toDateString() === new Date(base.startDate).toDateString()) {
+    const filtered = events.filter((e) => e.id !== baseId);
+    await persistEvents(filtered);
+    return true;
+  }
+
+  // Otherwise set recurrence end to the day before fromDate
+  const cutoff = new Date(fromDate);
+  cutoff.setDate(cutoff.getDate() - 1);
+  events[idx] = {
+    ...base,
+    recurrence: base.recurrence
+      ? { ...base.recurrence, endDate: cutoff.toISOString() }
+      : base.recurrence,
+  };
+  await persistEvents(events);
   return true;
 }
 

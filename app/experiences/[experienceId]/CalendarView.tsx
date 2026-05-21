@@ -52,11 +52,16 @@ export default function CalendarView({
   }
 
   // ── Delete event ──────────────────────────────────────────────────────────
-  async function handleDelete(eventId: string) {
-    const res = await fetch(`/api/events/${eventId}`, { method: "DELETE" });
+  async function handleDelete(eventId: string, mode: "single" | "all" | "future" = "all") {
+    const event = events.find((e) => e.id === eventId);
+    const res = await fetch(`/api/events/${eventId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mode, occurrenceDate: event?.startDate }),
+    });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Delete failed");
-    setEvents((prev) => prev.filter((e) => e.id !== eventId));
+    await refreshEvents();
   }
 
   // ── Create event ──────────────────────────────────────────────────────────

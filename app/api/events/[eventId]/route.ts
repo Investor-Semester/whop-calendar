@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { whopsdk } from "@/lib/whop-sdk";
-import { getEventById, updateEvent, deleteEvent } from "@/lib/events-store";
+import { getEventById, updateEvent, deleteEvent, deleteEventOccurrence, deleteEventFuture } from "@/lib/events-store";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -49,7 +49,7 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Params) {
+export async function DELETE(req: NextRequest, { params }: Params) {
   try {
     const headersList = await headers();
     const { userId } = await whopsdk.verifyUserToken(headersList);
@@ -64,7 +64,20 @@ export async function DELETE(_req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Only admins can delete events" }, { status: 403 });
     }
 
-    await deleteEvent(eventId);
+    let body: { mode?: string; occurrenceDate?: string } = {};
+    try { body = await req.json(); } catch { /* no body */ }
+
+    const mode = body.mode ?? "all";
+    const occurrenceDate = body.occurrenceDate;
+
+    if (mode === "single" && occurrenceDate) {
+      await deleteEventOccurrence(eventId, occurrenceDate);
+    } else if (mode === "future" && occurrenceDate) {
+      await deleteEventFuture(eventId, occurrenceDate);
+    } else {
+      await deleteEvent(eventId);
+    }
+
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("[DELETE /api/events/:id]", err);

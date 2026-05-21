@@ -4,13 +4,15 @@ import { useState } from "react";
 import type { CalendarEvent } from "@/lib/events-store";
 import { colorClasses } from "./Calendar";
 
+export type DeleteMode = "single" | "all" | "future";
+
 interface EventModalProps {
   event: CalendarEvent;
   currentUserId: string;
   isAdmin: boolean;
   onClose: () => void;
   onRsvp: (eventId: string) => Promise<void>;
-  onDelete?: (eventId: string) => Promise<void>;
+  onDelete?: (eventId: string, mode: DeleteMode) => Promise<void>;
   onEdit?: (event: CalendarEvent) => void;
 }
 
@@ -80,6 +82,9 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+
+  const isRecurring = !!(event.recurrence || event.recurringBaseId);
 
   const hasRsvpd = event.rsvps.includes(currentUserId);
   const isFull = event.maxAttendees !== null && event.rsvps.length >= event.maxAttendees;
@@ -102,12 +107,20 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
     finally { setLoading(false); }
   }
 
-  async function handleDelete() {
+  async function handleDelete(mode: DeleteMode) {
     if (!onDelete) return;
-    if (!confirm(`Delete "${event.title}"? This cannot be undone.`)) return;
     setDeleting(true);
-    try { await onDelete(event.id); onClose(); }
+    setShowDeleteOptions(false);
+    try { await onDelete(event.id, mode); onClose(); }
     catch (e) { setError(e instanceof Error ? e.message : "Failed to delete"); setDeleting(false); }
+  }
+
+  function onDeleteClick() {
+    if (isRecurring) {
+      setShowDeleteOptions(true);
+    } else {
+      handleDelete("all");
+    }
   }
 
   return (
@@ -192,12 +205,39 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
               </button>
             )}
             {isAdmin && onDelete && (
-              <button onClick={handleDelete} disabled={deleting}
+              <button onClick={onDeleteClick} disabled={deleting}
                 className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 transition-colors disabled:opacity-50">
-                {deleting ? "..." : "Delete"}
+                {deleting ? "Deleting..." : "Delete"}
               </button>
             )}
           </div>
+
+          {/* Recurring delete options */}
+          {showDeleteOptions && (
+            <div className="mb-3 border border-rose-500/30 rounded-xl overflow-hidden bg-rose-500/5">
+              <p className="text-xs text-rose-400 font-semibold px-4 pt-3 pb-2">Which events do you want to delete?</p>
+              {[
+                { mode: "single" as DeleteMode, label: "This event only", sub: "Just this one occurrence" },
+                { mode: "future" as DeleteMode, label: "This and future events", sub: "Removes this and all upcoming occurrences" },
+                { mode: "all" as DeleteMode, label: "All events in series", sub: "Removes every occurrence" },
+              ].map(({ mode, label, sub }) => (
+                <button
+                  key={mode}
+                  onClick={() => handleDelete(mode)}
+                  className="w-full flex flex-col items-start px-4 py-2.5 text-left hover:bg-rose-500/10 border-t border-rose-500/20 first:border-t-0 transition-colors"
+                >
+                  <span className="text-sm font-semibold text-rose-400">{label}</span>
+                  <span className="text-xs text-[#888]">{sub}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setShowDeleteOptions(false)}
+                className="w-full px-4 py-2.5 text-xs text-[#666] hover:text-[#888] border-t border-[#2a2a2a] transition-colors text-left"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
           {/* Calendar sync */}
           <div className="flex gap-2 border-t border-[#2a2a2a] pt-3">
