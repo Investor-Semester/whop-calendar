@@ -22,6 +22,7 @@ export default function CalendarView({
   const [events, setEvents] = useState<CalendarEvent[]>(initialEvents);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [editMode, setEditMode] = useState<"single" | "all" | "future">("all");
   const [createDate, setCreateDate] = useState<Date | undefined>();
   const [showCreateModal, setShowCreateModal] = useState(false);
 
@@ -84,13 +85,14 @@ export default function CalendarView({
     const res = await fetch(`/api/events/${editingEvent.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
+      body: JSON.stringify({ ...formData, mode: editMode, occurrenceDate: editingEvent.startDate }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to update event");
     await refreshEvents();
     setEditingEvent(null);
     setSelectedEvent(null);
+    setEditMode("all");
   }
 
   const [copied, setCopied] = useState(false);
@@ -158,7 +160,8 @@ export default function CalendarView({
           onDelete={isAdmin ? handleDelete : undefined}
           onEdit={
             isAdmin
-              ? (event) => {
+              ? (event, mode) => {
+                  setEditMode(mode);
                   setEditingEvent(event);
                   setSelectedEvent(null);
                 }

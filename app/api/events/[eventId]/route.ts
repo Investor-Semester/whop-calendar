@@ -1,7 +1,7 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { whopsdk } from "@/lib/whop-sdk";
-import { getEventById, updateEvent, deleteEvent, deleteEventOccurrence, deleteEventFuture } from "@/lib/events-store";
+import { getEventById, updateEvent, updateEventOccurrence, updateEventFuture, deleteEvent, deleteEventOccurrence, deleteEventFuture } from "@/lib/events-store";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -40,8 +40,18 @@ export async function PATCH(req: NextRequest, { params }: Params) {
       return NextResponse.json({ error: "Only admins can update events" }, { status: 403 });
     }
 
-    const updates = await req.json();
-    const updated = await updateEvent(eventId, updates);
+    const body = await req.json();
+    const { mode, occurrenceDate, ...updates } = body;
+
+    let updated;
+    if (mode === "single" && occurrenceDate) {
+      updated = await updateEventOccurrence(eventId, occurrenceDate, updates);
+    } else if (mode === "future" && occurrenceDate) {
+      updated = await updateEventFuture(eventId, occurrenceDate, updates);
+    } else {
+      updated = await updateEvent(eventId, updates);
+    }
+
     return NextResponse.json({ event: updated });
   } catch (err) {
     console.error("[PATCH /api/events/:id]", err);

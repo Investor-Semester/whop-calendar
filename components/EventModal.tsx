@@ -5,6 +5,7 @@ import type { CalendarEvent } from "@/lib/events-store";
 import { colorClasses } from "./Calendar";
 
 export type DeleteMode = "single" | "all" | "future";
+export type EditMode = "single" | "all" | "future";
 
 interface EventModalProps {
   event: CalendarEvent;
@@ -13,7 +14,7 @@ interface EventModalProps {
   onClose: () => void;
   onRsvp: (eventId: string) => Promise<void>;
   onDelete?: (eventId: string, mode: DeleteMode) => Promise<void>;
-  onEdit?: (event: CalendarEvent) => void;
+  onEdit?: (event: CalendarEvent, mode: EditMode) => void;
 }
 
 function formatDateTime(iso: string) {
@@ -83,6 +84,7 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
+  const [showEditOptions, setShowEditOptions] = useState(false);
 
   const isRecurring = !!(event.recurrence || event.recurringBaseId);
 
@@ -199,7 +201,8 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
               {loading ? "..." : hasRsvpd ? "Cancel RSVP" : isFull ? "Event Full" : "RSVP"}
             </button>
             {isAdmin && onEdit && (
-              <button onClick={() => onEdit(event)}
+              <button
+                onClick={() => isRecurring ? setShowEditOptions(true) : onEdit(event, "all")}
                 className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-[#2a2a2a] text-[#ccc] hover:bg-[#333] hover:text-white transition-colors">
                 Edit
               </button>
@@ -211,6 +214,33 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
               </button>
             )}
           </div>
+
+          {/* Recurring edit options */}
+          {showEditOptions && onEdit && (
+            <div className="mb-3 border border-indigo-500/30 rounded-xl overflow-hidden bg-indigo-500/5">
+              <p className="text-xs text-indigo-400 font-semibold px-4 pt-3 pb-2">Which events do you want to edit?</p>
+              {[
+                { mode: "single" as EditMode, label: "This event only", sub: "Just this one occurrence" },
+                { mode: "future" as EditMode, label: "This and future events", sub: "Updates this and all upcoming occurrences" },
+                { mode: "all" as EditMode, label: "All events in series", sub: "Updates every occurrence" },
+              ].map(({ mode, label, sub }) => (
+                <button
+                  key={mode}
+                  onClick={() => { setShowEditOptions(false); onEdit(event, mode); }}
+                  className="w-full flex flex-col items-start px-4 py-2.5 text-left hover:bg-indigo-500/10 border-t border-indigo-500/20 first:border-t-0 transition-colors"
+                >
+                  <span className="text-sm font-semibold text-indigo-300">{label}</span>
+                  <span className="text-xs text-[#888]">{sub}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setShowEditOptions(false)}
+                className="w-full px-4 py-2.5 text-xs text-[#666] hover:text-[#888] border-t border-[#2a2a2a] transition-colors text-left"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
 
           {/* Recurring delete options */}
           {showDeleteOptions && (

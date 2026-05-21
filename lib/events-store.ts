@@ -215,6 +215,109 @@ export async function deleteEvent(eventId: string): Promise<boolean> {
   return true;
 }
 
+// Edit a single occurrence: exclude the date from the series, create a standalone event
+export async function updateEventOccurrence(
+  eventId: string,
+  occurrenceDate: string,
+  updates: UpdateEventInput
+): Promise<CalendarEvent | null> {
+  const events = await readAllEvents();
+  const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
+  const idx = events.findIndex((e) => e.id === baseId);
+  if (idx === -1) return null;
+  const base = events[idx];
+
+  // Exclude this date from the recurring series
+  const excluded = base.excludedDates ?? [];
+  excluded.push(occurrenceDate);
+  events[idx] = { ...base, excludedDates: excluded };
+
+  // Create a standalone event for just this occurrence
+  const duration = new Date(base.endDate).getTime() - new Date(base.startDate).getTime();
+  const newStart = updates.startDate ?? occurrenceDate;
+  const newEnd = updates.endDate ?? new Date(new Date(newStart).getTime() + duration).toISOString();
+
+  const newEvent: CalendarEvent = {
+    id: generateId(),
+    experienceId: base.experienceId,
+    title: updates.title ?? base.title,
+    description: updates.description ?? base.description,
+    startDate: newStart,
+    endDate: newEnd,
+    location: updates.location ?? base.location,
+    meetingType: updates.meetingType ?? base.meetingType,
+    meetingLink: updates.meetingLink ?? base.meetingLink,
+    imageUrl: updates.imageUrl !== undefined ? updates.imageUrl : base.imageUrl,
+    maxAttendees: updates.maxAttendees !== undefined ? updates.maxAttendees : base.maxAttendees,
+    rsvps: [],
+    createdBy: base.createdBy,
+    createdAt: new Date().toISOString(),
+    color: updates.color ?? base.color,
+  };
+
+  events.push(newEvent);
+  await persistEvents(events);
+  return newEvent;
+}
+
+// Edit this and future occurrences: truncate the series, create a new series from fromDate
+export async function updateEventFuture(
+  eventId: string,
+  fromDate: string,
+  updates: UpdateEventInput
+): Promise<CalendarEvent | null> {
+  const events = await readAllEvents();
+  const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
+  const idx = events.findIndex((e) => e.id === baseId);
+  if (idx === -1) return null;
+  const base = events[idx];
+
+  // If editing from the very first occurrence, just update the whole event
+  if (new Date(fromDate).toDateString() === new Date(base.startDate).toDateString()) {
+    events[idx] = { ...base, ...updates };
+    await persistEvents(events);
+    return events[idx];
+  }
+
+  // Truncate the original series one day before fromDate
+  const cutoff = new Date(fromDate);
+  cutoff.setDate(cutoff.getDate() - 1);
+  events[idx] = {
+    ...base,
+    recurrence: base.recurrence
+      ? { ...base.recurrence, endDate: cutoff.toISOString() }
+      : base.recurrence,
+  };
+
+  // Create a new event (with recurrence) starting from fromDate
+  const duration = new Date(base.endDate).getTime() - new Date(base.startDate).getTime();
+  const newStart = updates.startDate ?? fromDate;
+  const newEnd = updates.endDate ?? new Date(new Date(newStart).getTime() + duration).toISOString();
+
+  const newEvent: CalendarEvent = {
+    id: generateId(),
+    experienceId: base.experienceId,
+    title: updates.title ?? base.title,
+    description: updates.description ?? base.description,
+    startDate: newStart,
+    endDate: newEnd,
+    location: updates.location ?? base.location,
+    meetingType: updates.meetingType ?? base.meetingType,
+    meetingLink: updates.meetingLink ?? base.meetingLink,
+    recurrence: updates.recurrence ?? base.recurrence,
+    imageUrl: updates.imageUrl !== undefined ? updates.imageUrl : base.imageUrl,
+    maxAttendees: updates.maxAttendees !== undefined ? updates.maxAttendees : base.maxAttendees,
+    rsvps: [],
+    createdBy: base.createdBy,
+    createdAt: new Date().toISOString(),
+    color: updates.color ?? base.color,
+  };
+
+  events.push(newEvent);
+  await persistEvents(events);
+  return newEvent;
+}
+
 // Delete a single occurrence by excluding its date
 export async function deleteEventOccurrence(eventId: string, occurrenceDate: string): Promise<boolean> {
   const events = await readAllEvents();
