@@ -91,7 +91,7 @@ export default function CalendarView({
   const [copied, setCopied] = useState(false);
   const [googleCopied, setGoogleCopied] = useState(false);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://whop-calendar-mu.vercel.app";
-  const feedUrl = `${appUrl}/api/calendar/${experienceId}/feed`;
+  const feedUrl = `${appUrl}/api/calendar/${experienceId}/calendar.ics`;
   const webcalUrl = feedUrl.replace(/^https?:\/\//, "webcal://");
   const googleUrl = `https://calendar.google.com/calendar/r/settings/addbyurl`;
 
