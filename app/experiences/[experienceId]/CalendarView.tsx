@@ -360,9 +360,9 @@ function UpcomingCard({
           </p>
         </div>
         {isLive && (
-          <div className="flex-shrink-0 flex flex-col items-center gap-1">
-            <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse block" />
-            <span className="text-red-500 text-[10px] font-bold uppercase tracking-widest leading-none">LIVE</span>
+          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 px-1">
+            <span className="w-5 h-5 rounded-full bg-red-500 animate-pulse block" />
+            <span className="text-red-500 text-sm font-black uppercase tracking-widest leading-none">LIVE</span>
           </div>
         )}
       </button>
