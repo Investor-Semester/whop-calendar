@@ -89,16 +89,25 @@ export default function CalendarView({
   }
 
   const [copied, setCopied] = useState(false);
+  const [googleCopied, setGoogleCopied] = useState(false);
   const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://whop-calendar-mu.vercel.app";
   const feedUrl = `${appUrl}/api/calendar/${experienceId}/feed`;
   const webcalUrl = feedUrl.replace(/^https?:\/\//, "webcal://");
-  const googleUrl = `https://calendar.google.com/calendar/r/settings/addbyurl?url=${encodeURIComponent(feedUrl)}`;
+  const googleUrl = `https://calendar.google.com/calendar/r/settings/addbyurl`;
 
   function handleCopy() {
     navigator.clipboard.writeText(feedUrl).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     });
+  }
+
+  function handleGoogleSync() {
+    navigator.clipboard.writeText(feedUrl).then(() => {
+      setGoogleCopied(true);
+      setTimeout(() => setGoogleCopied(false), 4000);
+    });
+    window.open(googleUrl, "_blank");
   }
 
   return (
@@ -183,15 +192,13 @@ export default function CalendarView({
             <p className="text-2xl font-bold text-rose-500 mb-1 text-center">Sync Your Calendar</p>
             <p className="text-sm text-[#888] mb-5 text-center">Subscribe once — new events and changes appear automatically in your calendar app.</p>
             <div className="flex flex-wrap gap-3 justify-center">
-              <a
-                href={googleUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                onClick={handleGoogleSync}
                 className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                Sync to Google Calendar
-              </a>
+                {googleCopied ? "URL copied — paste it in Google Calendar!" : "Sync to Google Calendar"}
+              </button>
               <a
                 href={webcalUrl}
                 className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-[#1e1e1e] border border-[#333] text-[#ccc] hover:text-white hover:border-[#555] hover:bg-[#252525] transition-colors"
