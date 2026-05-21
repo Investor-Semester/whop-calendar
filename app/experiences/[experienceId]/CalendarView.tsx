@@ -269,23 +269,28 @@ function UpcomingStrip({
       <h2 className="text-xs font-medium text-[#888] uppercase tracking-wide mb-3">
         This Week
       </h2>
-      <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4">
-        {/* Today's events with label */}
-        {todayEvents.map((event, i) => (
-          <div key={event.id} className="flex-shrink-0 flex flex-col gap-1">
-            {i === 0 && (
-              <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wide px-0.5">Today</span>
-            )}
-            <UpcomingCard event={event} onClick={() => onEventClick(event)} />
+      <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
+        {/* Today — vertical stack */}
+        {todayEvents.length > 0 && (
+          <div className="flex-shrink-0 flex gap-3">
+            <div className="flex flex-col items-center">
+              <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-2">Today</span>
+              <div className="w-px flex-1 bg-indigo-500/40 rounded-full" />
+            </div>
+            <div className="flex flex-col gap-2">
+              {todayEvents.map((event) => (
+                <UpcomingCard key={event.id} event={event} onClick={() => onEventClick(event)} compact />
+              ))}
+            </div>
           </div>
-        ))}
-
-        {/* Divider between today and rest of week */}
-        {todayEvents.length > 0 && weekEvents.length > 0 && (
-          <div className="flex-shrink-0 w-px bg-[#2a2a2a] self-stretch mx-1" />
         )}
 
-        {/* Rest of week */}
+        {/* Divider */}
+        {todayEvents.length > 0 && weekEvents.length > 0 && (
+          <div className="flex-shrink-0 w-px bg-[#2a2a2a] self-stretch" />
+        )}
+
+        {/* Rest of week — horizontal cards */}
         {weekEvents.map((event) => (
           <div key={event.id} className="flex-shrink-0">
             <UpcomingCard event={event} onClick={() => onEventClick(event)} />
