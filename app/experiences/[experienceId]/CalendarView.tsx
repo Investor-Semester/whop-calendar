@@ -328,22 +328,35 @@ function UpcomingCard({
   onClick: () => void;
   compact?: boolean;
 }) {
+  const now = new Date();
   const start = new Date(event.startDate);
+  const end = new Date(event.endDate);
+
+  const isLive = now >= start && now <= end;
+  const isEnded = now > end;
 
   if (compact) {
     return (
       <button
         onClick={onClick}
-        className={`flex items-center gap-2.5 bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl p-2.5 text-left hover:bg-[#222] transition-colors w-56`}
+        className={`relative flex items-center gap-2.5 bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl p-2.5 text-left hover:bg-[#222] transition-all w-56
+          ${isEnded ? "opacity-40 scale-95 grayscale" : ""}`}
       >
-        {event.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={event.imageUrl} alt={event.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-        ) : (
-          <div className={`w-10 h-10 rounded-lg flex-shrink-0 ${COLOR_BG[event.color]}`} />
-        )}
+        <div className="relative flex-shrink-0">
+          {event.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={event.imageUrl} alt={event.title} className="w-10 h-10 rounded-lg object-cover" />
+          ) : (
+            <div className={`w-10 h-10 rounded-lg ${COLOR_BG[event.color]}`} />
+          )}
+          {isLive && (
+            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none uppercase tracking-wide animate-pulse">
+              LIVE
+            </span>
+          )}
+        </div>
         <div className="min-w-0">
-          <p className="text-sm font-semibold text-white truncate">{event.title}</p>
+          <p className={`text-sm font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
           <p className="text-xs text-[#888]">
             {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
           </p>
@@ -358,20 +371,29 @@ function UpcomingCard({
   return (
     <button
       onClick={onClick}
-      className="flex-shrink-0 w-44 bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl overflow-hidden text-left hover:border-[#444] hover:bg-[#222] transition-colors"
+      className={`relative flex-shrink-0 w-44 bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl overflow-hidden text-left hover:border-[#444] hover:bg-[#222] transition-all
+        ${isEnded ? "opacity-40 scale-95 grayscale" : ""}`}
     >
       {/* Photo or color bar */}
-      {event.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={event.imageUrl} alt={event.title} className="w-full h-24 object-cover" />
-      ) : (
-        <div className={`w-full h-24 ${COLOR_BG[event.color]}`} />
-      )}
+      <div className="relative">
+        {event.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={event.imageUrl} alt={event.title} className="w-full h-24 object-cover" />
+        ) : (
+          <div className={`w-full h-24 ${COLOR_BG[event.color]}`} />
+        )}
+        {isLive && (
+          <span className="absolute top-2 left-2 flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+            LIVE
+          </span>
+        )}
+      </div>
       <div className="p-3">
         <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mb-1.5 text-white ${COLOR_BG[event.color]}`}>
           {start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
         </div>
-        <p className="text-sm font-semibold text-white truncate">{event.title}</p>
+        <p className={`text-sm font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
         <p className="text-xs text-[#888] mt-0.5">
           {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
         </p>
