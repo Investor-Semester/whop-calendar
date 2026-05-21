@@ -349,13 +349,8 @@ function UpcomingCard({
           ) : (
             <div className={`w-10 h-10 rounded-lg ${COLOR_BG[event.color]}`} />
           )}
-          {isLive && (
-            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded leading-none uppercase tracking-wide animate-pulse">
-              LIVE
-            </span>
-          )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <p className={`text-sm font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
           <p className="text-xs text-[#888]">
             {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
@@ -364,6 +359,12 @@ function UpcomingCard({
             {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
           </p>
         </div>
+        {isLive && (
+          <div className="flex-shrink-0 flex flex-col items-center gap-1">
+            <span className="w-3 h-3 rounded-full bg-red-500 animate-pulse block" />
+            <span className="text-red-500 text-[10px] font-bold uppercase tracking-widest leading-none">LIVE</span>
+          </div>
+        )}
       </button>
     );
   }
