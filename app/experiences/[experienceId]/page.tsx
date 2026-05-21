@@ -21,7 +21,8 @@ export default async function ExperiencePage({ params }: Props) {
     try {
       const result = await whopsdk.verifyUserToken(await headers());
       userId = result.userId;
-    } catch {
+    } catch (err) {
+      console.error("[ExperiencePage] verifyUserToken failed:", err instanceof Error ? err.message : String(err));
       return (
         <div className="flex items-center justify-center h-screen text-[#888]">
           <p>Please log in to access this calendar.</p>
@@ -43,7 +44,7 @@ export default async function ExperiencePage({ params }: Props) {
     isAdmin = access.access_level === "admin";
   }
 
-  const initialEvents = getEventsByExperience(experienceId);
+  const initialEvents = await getEventsByExperience(experienceId);
 
   return (
     <CalendarView

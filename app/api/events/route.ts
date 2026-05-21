@@ -1,4 +1,4 @@
-﻿import { headers } from "next/headers";
+import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { whopsdk } from "@/lib/whop-sdk";
 import { getEventsByExperience, createEvent } from "@/lib/events-store";
@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     const access = await whopsdk.users.checkAccess(experienceId, { id: userId });
     if (!access.has_access) return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
-    const events = getEventsByExperience(experienceId);
+    const events = await getEventsByExperience(experienceId);
     return NextResponse.json({ events, userId, accessLevel: access.access_level });
   } catch (err) {
     console.error("[GET /api/events]", err);
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only admins can create events" }, { status: 403 });
     }
 
-    const event = createEvent({
+    const event = await createEvent({
       experienceId, title,
       description: description ?? "",
       startDate, endDate,
