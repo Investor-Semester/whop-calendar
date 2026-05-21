@@ -180,9 +180,9 @@ export default function CalendarView({
       <div className="border-t border-[#2a2a2a] mt-4 pt-8 pb-10">
         <div className="max-w-5xl mx-auto px-4">
           <div className="bg-[#111] border border-[#2a2a2a] rounded-2xl px-6 py-6">
-            <p className="text-base font-semibold text-white mb-1">Sync this calendar</p>
-            <p className="text-sm text-[#888] mb-5">Subscribe once — new events and changes appear automatically in your calendar app.</p>
-            <div className="flex flex-wrap gap-3">
+            <p className="text-2xl font-bold text-rose-500 mb-1 text-center">Sync this calendar</p>
+            <p className="text-sm text-[#888] mb-5 text-center">Subscribe once — new events and changes appear automatically in your calendar app.</p>
+            <div className="flex flex-wrap gap-3 justify-center">
               <a
                 href={googleUrl}
                 target="_blank"
