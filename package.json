@@ -1,0 +1,29 @@
+{
+  "name": "whop-calendar-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "whop-proxy --command \"next dev --turbopack\"",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@whop/iframe": "^0.0.6",
+    "@whop/react": "^0.3.2",
+    "@whop/sdk": "^0.0.39",
+    "next": "^15.3.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@whop-apps/dev-proxy": "^0.0.1-canary.117",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "tailwindcss": "^3.4.17",
+    "typescript": "^5.7.3"
+  }
+}
