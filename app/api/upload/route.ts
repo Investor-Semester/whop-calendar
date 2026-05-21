@@ -1,6 +1,5 @@
-﻿import { NextRequest, NextResponse } from "next/server";
-import { writeFile, mkdir } from "fs/promises";
-import path from "path";
+import { NextRequest, NextResponse } from "next/server";
+import { put } from "@vercel/blob";
 
 export async function POST(req: NextRequest) {
   try {
@@ -17,14 +16,11 @@ export async function POST(req: NextRequest) {
     }
 
     const ext = file.name.split(".").pop() ?? "jpg";
-    const filename = `${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
-    const uploadDir = path.join(process.cwd(), "public", "uploads");
-    await mkdir(uploadDir, { recursive: true });
+    const filename = `event-covers/${Date.now()}-${Math.random().toString(36).slice(2, 9)}.${ext}`;
 
-    const bytes = await file.arrayBuffer();
-    await writeFile(path.join(uploadDir, filename), Buffer.from(bytes));
+    const blob = await put(filename, file, { access: "public" });
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    return NextResponse.json({ url: blob.url });
   } catch (err) {
     console.error("[POST /api/upload]", err);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

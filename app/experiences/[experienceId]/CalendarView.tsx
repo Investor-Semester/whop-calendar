@@ -68,7 +68,7 @@ export default function CalendarView({
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to create event");
-    setEvents((prev) => [...prev, data.event]);
+    await refreshEvents(); // fetch expanded list so recurring occurrences appear
     setShowCreateModal(false);
     setCreateDate(undefined);
   }
@@ -83,9 +83,7 @@ export default function CalendarView({
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to update event");
-    setEvents((prev) =>
-      prev.map((e) => (e.id === editingEvent.id ? data.event : e))
-    );
+    await refreshEvents();
     setEditingEvent(null);
     setSelectedEvent(null);
   }
