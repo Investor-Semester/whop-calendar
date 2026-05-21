@@ -166,7 +166,7 @@ export default function CalendarView({
   );
 }
 
-// ─── Upcoming Events Strip ────────────────────────────────────────────────────
+// ─── This Week Strip ─────────────────────────────────────────────────────────
 
 function UpcomingStrip({
   events,
@@ -176,68 +176,146 @@ function UpcomingStrip({
   onEventClick: (e: CalendarEvent) => void;
 }) {
   const now = new Date();
-  const upcoming = events
-    .filter((e) => new Date(e.startDate) >= now)
-    .slice(0, 4);
 
-  if (upcoming.length === 0) return null;
+  // End of week = coming Sunday at midnight
+  const endOfWeek = new Date(now);
+  endOfWeek.setDate(now.getDate() + (7 - now.getDay()));
+  endOfWeek.setHours(0, 0, 0, 0);
+
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date(now);
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const todayEvents = events.filter((e) => {
+    const s = new Date(e.startDate);
+    return s >= todayStart && s <= todayEnd;
+  });
+
+  const weekEvents = events.filter((e) => {
+    const s = new Date(e.startDate);
+    return s > todayEnd && s < endOfWeek;
+  });
+
+  if (todayEvents.length === 0 && weekEvents.length === 0) return null;
 
   return (
     <div className="mb-8">
       <h2 className="text-xs font-medium text-[#888] uppercase tracking-wide mb-3">
-        Coming Up
+        This Week
       </h2>
-      <div className="flex gap-3 overflow-x-auto pb-2">
-        {upcoming.map((event) => (
-          <UpcomingCard
-            key={event.id}
-            event={event}
-            onClick={() => onEventClick(event)}
-          />
-        ))}
+      <div className="flex gap-4">
+        {/* Today bracket */}
+        {todayEvents.length > 0 && (
+          <div className="flex gap-3 flex-shrink-0">
+            <div className="flex flex-col items-center">
+              <span className="text-xs font-semibold text-indigo-400 uppercase tracking-wide mb-2">Today</span>
+              <div className="w-px flex-1 bg-indigo-500/40 rounded-full" />
+            </div>
+            <div className="flex flex-col gap-2">
+              {todayEvents.map((event) => (
+                <UpcomingCard key={event.id} event={event} onClick={() => onEventClick(event)} compact />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Divider */}
+        {todayEvents.length > 0 && weekEvents.length > 0 && (
+          <div className="w-px bg-[#2a2a2a] self-stretch flex-shrink-0" />
+        )}
+
+        {/* Rest of week */}
+        {weekEvents.length > 0 && (
+          <div className="flex gap-3 overflow-x-auto pb-2 flex-1">
+            {weekEvents.map((event) => (
+              <UpcomingCard key={event.id} event={event} onClick={() => onEventClick(event)} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
+const COLOR_BG: Record<CalendarEvent["color"], string> = {
+  indigo: "bg-indigo-600",
+  rose: "bg-rose-600",
+  emerald: "bg-emerald-600",
+  amber: "bg-amber-500",
+  sky: "bg-sky-600",
+  violet: "bg-violet-600",
+};
+
+const COLOR_BORDER: Record<CalendarEvent["color"], string> = {
+  indigo: "border-indigo-500/40",
+  rose: "border-rose-500/40",
+  emerald: "border-emerald-500/40",
+  amber: "border-amber-400/40",
+  sky: "border-sky-500/40",
+  violet: "border-violet-500/40",
+};
+
 function UpcomingCard({
   event,
   onClick,
+  compact = false,
 }: {
   event: CalendarEvent;
   onClick: () => void;
+  compact?: boolean;
 }) {
   const start = new Date(event.startDate);
-  const COLOR_BG: Record<CalendarEvent["color"], string> = {
-    indigo: "bg-indigo-600",
-    rose: "bg-rose-600",
-    emerald: "bg-emerald-600",
-    amber: "bg-amber-500",
-    sky: "bg-sky-600",
-    violet: "bg-violet-600",
-  };
+
+  if (compact) {
+    return (
+      <button
+        onClick={onClick}
+        className={`flex items-center gap-2.5 bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl p-2.5 text-left hover:bg-[#222] transition-colors w-56`}
+      >
+        {event.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={event.imageUrl} alt={event.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+        ) : (
+          <div className={`w-10 h-10 rounded-lg flex-shrink-0 ${COLOR_BG[event.color]}`} />
+        )}
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-white truncate">{event.title}</p>
+          <p className="text-xs text-[#888]">
+            {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+          </p>
+          <p className="text-xs text-[#555]">
+            {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
+          </p>
+        </div>
+      </button>
+    );
+  }
 
   return (
     <button
       onClick={onClick}
-      className="flex-shrink-0 w-44 bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl p-3 text-left hover:border-[#444] hover:bg-[#222] transition-colors"
+      className="flex-shrink-0 w-44 bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl overflow-hidden text-left hover:border-[#444] hover:bg-[#222] transition-colors"
     >
-      <div
-        className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mb-2 text-white ${COLOR_BG[event.color]}`}
-      >
-        {start.toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+      {/* Photo or color bar */}
+      {event.imageUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={event.imageUrl} alt={event.title} className="w-full h-24 object-cover" />
+      ) : (
+        <div className={`w-full h-24 ${COLOR_BG[event.color]}`} />
+      )}
+      <div className="p-3">
+        <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mb-1.5 text-white ${COLOR_BG[event.color]}`}>
+          {start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+        </div>
+        <p className="text-sm font-semibold text-white truncate">{event.title}</p>
+        <p className="text-xs text-[#888] mt-0.5">
+          {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+        </p>
+        <p className="text-xs text-[#666] mt-1">
+          {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
+        </p>
       </div>
-      <p className="text-sm font-semibold text-white truncate">{event.title}</p>
-      <p className="text-xs text-[#888] mt-0.5">
-        {start.toLocaleTimeString("en-US", {
-          hour: "numeric",
-          minute: "2-digit",
-        })}
-      </p>
-      <p className="text-xs text-[#666] mt-1">
-        {event.rsvps.length} going
-        {event.maxAttendees !== null && ` / ${event.maxAttendees}`}
-      </p>
     </button>
   );
 }
