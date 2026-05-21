@@ -181,7 +181,7 @@ export default function CalendarView({
           <div className="bg-[#111] border border-[#2a2a2a] rounded-2xl px-6 py-6">
             <p className="text-2xl font-bold text-rose-500 mb-1 text-center">Sync Your Calendar</p>
             <p className="text-sm text-[#888] mb-4 text-center">
-              Copy the link below, then paste it into your calendar app to subscribe.
+              Copy this link, then paste it into the URL section of your calendar app to subscribe.
             </p>
 
             {/* URL display + copy */}
@@ -214,7 +214,7 @@ export default function CalendarView({
                 className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
               >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                Open Google Calendar
+                Sync Google Calendar
               </a>
               <a
                 href={feedUrl.replace(/^https?:\/\//, "webcal://")}
