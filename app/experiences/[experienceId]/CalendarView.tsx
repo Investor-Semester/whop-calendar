@@ -204,22 +204,24 @@ export default function CalendarView({
               </button>
             </div>
 
-            {/* Instructions */}
-            <div className="flex flex-wrap gap-4 justify-center text-sm text-[#888] max-w-2xl mx-auto">
-              <div className="flex items-start gap-2">
-                <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-indigo-400" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                <span>
-                  <span className="text-white font-medium">Google Calendar:</span>{" "}
-                  Open Google Calendar → Other calendars (+) → From URL → Paste → Add calendar
-                </span>
-              </div>
-              <div className="flex items-start gap-2">
-                <svg className="w-4 h-4 mt-0.5 flex-shrink-0 text-[#aaa]" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
-                <span>
-                  <span className="text-white font-medium">Apple Calendar:</span>{" "}
-                  Open Calendar → File → New Calendar Subscription → Paste → Subscribe
-                </span>
-              </div>
+            {/* Buttons */}
+            <div className="flex flex-wrap gap-3 justify-center">
+              <a
+                href="https://calendar.google.com/calendar/r/settings/addbyurl"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-indigo-600 text-white hover:bg-indigo-500 transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+                Open Google Calendar
+              </a>
+              <a
+                href={feedUrl.replace(/^https?:\/\//, "webcal://")}
+                className="flex items-center gap-2.5 px-5 py-3 rounded-xl text-sm font-semibold bg-[#1e1e1e] border border-[#333] text-[#ccc] hover:text-white hover:border-[#555] hover:bg-[#252525] transition-colors"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11z"/></svg>
+                Subscribe in Apple / iCal
+              </a>
             </div>
           </div>
         </div>
