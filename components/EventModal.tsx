@@ -6,6 +6,7 @@ import { colorClasses } from "./Calendar";
 
 export type DeleteMode = "single" | "all" | "future";
 export type EditMode = "single" | "all" | "future";
+export type HideMode = "single" | "all" | "future";
 
 interface EventModalProps {
   event: CalendarEvent;
@@ -15,6 +16,8 @@ interface EventModalProps {
   onRsvp: (eventId: string) => Promise<void>;
   onDelete?: (eventId: string, mode: DeleteMode) => Promise<void>;
   onEdit?: (event: CalendarEvent, mode: EditMode) => void;
+  onHide?: (eventId: string, mode: HideMode) => Promise<void>;
+  onUnhide?: (eventId: string) => Promise<void>;
 }
 
 function formatDateTime(iso: string) {
@@ -79,12 +82,14 @@ const MEETING_LABELS: Record<string, string> = {
   zoom: "Zoom", "google-meet": "Google Meet", other: "Meeting Link",
 };
 
-export default function EventModal({ event, currentUserId, isAdmin, onClose, onRsvp, onDelete, onEdit }: EventModalProps) {
+export default function EventModal({ event, currentUserId, isAdmin, onClose, onRsvp, onDelete, onEdit, onHide, onUnhide }: EventModalProps) {
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [hiding, setHiding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showDeleteOptions, setShowDeleteOptions] = useState(false);
   const [showEditOptions, setShowEditOptions] = useState(false);
+  const [showHideOptions, setShowHideOptions] = useState(false);
 
   const isRecurring = !!(event.recurrence || event.recurringBaseId);
 
@@ -125,6 +130,31 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
     }
   }
 
+  async function handleHide(mode: HideMode) {
+    if (!onHide) return;
+    setHiding(true);
+    setShowHideOptions(false);
+    try { await onHide(event.id, mode); onClose(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Failed to hide event"); setHiding(false); }
+  }
+
+  async function handleUnhide() {
+    if (!onUnhide) return;
+    setHiding(true);
+    try { await onUnhide(event.id); onClose(); }
+    catch (e) { setError(e instanceof Error ? e.message : "Failed to unhide event"); setHiding(false); }
+  }
+
+  function onHideClick() {
+    if (event.hidden) {
+      handleUnhide();
+    } else if (isRecurring) {
+      setShowHideOptions(true);
+    } else {
+      handleHide("all");
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ backgroundColor: "rgba(0,0,0,0.75)" }} onClick={onClose}>
       <div className="bg-[#1c1c1c] border border-[#2a2a2a] rounded-2xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
@@ -144,7 +174,14 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
           {/* Header */}
           <div className="flex items-start justify-between gap-4 mb-4">
             <div>
-              <h2 className="text-xl font-semibold text-white leading-tight">{event.title}</h2>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-xl font-semibold text-white leading-tight">{event.title}</h2>
+                {event.hidden && isAdmin && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30 uppercase tracking-wide">
+                    Hidden
+                  </span>
+                )}
+              </div>
               {recurrenceLabel && <p className="text-xs text-indigo-400 mt-0.5">Repeating: {recurrenceLabel}</p>}
             </div>
             <button onClick={onClose} className="text-[#888] hover:text-white transition-colors flex-shrink-0 text-xl leading-none">x</button>
@@ -214,6 +251,16 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
                 Edit
               </button>
             )}
+            {isAdmin && (onHide || onUnhide) && (
+              <button onClick={onHideClick} disabled={hiding}
+                className={`py-2.5 px-4 rounded-xl text-sm font-semibold transition-colors disabled:opacity-50 ${
+                  event.hidden
+                    ? "bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600/30"
+                    : "bg-amber-500/20 text-amber-400 hover:bg-amber-500/30"
+                }`}>
+                {hiding ? "..." : event.hidden ? "Unhide" : "Hide"}
+              </button>
+            )}
             {isAdmin && onDelete && (
               <button onClick={onDeleteClick} disabled={deleting}
                 className="py-2.5 px-4 rounded-xl text-sm font-semibold bg-rose-600/20 text-rose-400 hover:bg-rose-600/30 transition-colors disabled:opacity-50">
@@ -242,6 +289,33 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
               ))}
               <button
                 onClick={() => setShowEditOptions(false)}
+                className="w-full px-4 py-2.5 text-xs text-[#666] hover:text-[#888] border-t border-[#2a2a2a] transition-colors text-left"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Recurring hide options */}
+          {showHideOptions && !event.hidden && onHide && (
+            <div className="mb-3 border border-amber-500/30 rounded-xl overflow-hidden bg-amber-500/5">
+              <p className="text-xs text-amber-400 font-semibold px-4 pt-3 pb-2">Which events do you want to hide?</p>
+              {[
+                { mode: "single" as HideMode, label: "This event only", sub: "Hides just this occurrence from users" },
+                { mode: "future" as HideMode, label: "This and future events", sub: "Hides this and all upcoming occurrences" },
+                { mode: "all" as HideMode, label: "All events in series", sub: "Hides the entire series from users" },
+              ].map(({ mode, label, sub }) => (
+                <button
+                  key={mode}
+                  onClick={() => handleHide(mode)}
+                  className="w-full flex flex-col items-start px-4 py-2.5 text-left hover:bg-amber-500/10 border-t border-amber-500/20 first:border-t-0 transition-colors"
+                >
+                  <span className="text-sm font-semibold text-amber-300">{label}</span>
+                  <span className="text-xs text-[#888]">{sub}</span>
+                </button>
+              ))}
+              <button
+                onClick={() => setShowHideOptions(false)}
                 className="w-full px-4 py-2.5 text-xs text-[#666] hover:text-[#888] border-t border-[#2a2a2a] transition-colors text-left"
               >
                 Cancel

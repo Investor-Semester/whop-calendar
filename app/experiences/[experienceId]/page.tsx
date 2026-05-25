@@ -44,7 +44,7 @@ export default async function ExperiencePage({ params }: Props) {
     isAdmin = access.access_level === "admin";
   }
 
-  const initialEvents = await getEventsByExperience(experienceId);
+  const initialEvents = await getEventsByExperience(experienceId, isAdmin);
 
   return (
     <CalendarView

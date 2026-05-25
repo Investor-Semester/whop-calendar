@@ -33,7 +33,11 @@ export interface CalendarEvent {
   createdAt: string;
   color: EventColor;
   recurringBaseId?: string;
-  excludedDates?: string[]; // ISO date strings of individual skipped occurrences
+  excludedDates?: string[];  // ISO dates of individually deleted occurrences
+  // Visibility controls (admin-only feature)
+  hidden?: boolean;          // true = entire event/series hidden from users
+  hiddenDates?: string[];    // ISO dates of individually hidden occurrences
+  hiddenFromDate?: string;   // hide all occurrences on or after this ISO date
 }
 
 export type EventColor = "indigo" | "rose" | "emerald" | "amber" | "sky" | "violet";
@@ -127,6 +131,15 @@ function expandRecurringEvent(base: CalendarEvent): CalendarEvent[] {
       (d) => new Date(d).toDateString() === current.toDateString()
     );
 
+    // Determine per-occurrence hidden state
+    const isHiddenByDate = base.hiddenDates?.some(
+      (d) => new Date(d).toDateString() === current.toDateString()
+    );
+    const isHiddenFromDate = base.hiddenFromDate
+      ? current >= new Date(base.hiddenFromDate)
+      : false;
+    const occHidden = base.hidden || isHiddenByDate || isHiddenFromDate;
+
     if (current >= windowStart && !isExcluded) {
       occurrences.push({
         ...base,
@@ -134,6 +147,7 @@ function expandRecurringEvent(base: CalendarEvent): CalendarEvent[] {
         startDate: occStart,
         endDate: occEnd.toISOString(),
         recurringBaseId: base.id,
+        hidden: occHidden,
       });
     }
 
@@ -155,11 +169,15 @@ function expandRecurringEvent(base: CalendarEvent): CalendarEvent[] {
 
 // Public API (all async)
 
-export async function getEventsByExperience(experienceId: string): Promise<CalendarEvent[]> {
+export async function getEventsByExperience(
+  experienceId: string,
+  includeHidden = false
+): Promise<CalendarEvent[]> {
   const base = (await readAllEvents()).filter((e) => e.experienceId === experienceId);
   const expanded: CalendarEvent[] = [];
   for (const event of base) expanded.push(...expandRecurringEvent(event));
-  return expanded.sort(
+  const visible = includeHidden ? expanded : expanded.filter((e) => !e.hidden);
+  return visible.sort(
     (a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime()
   );
 }
@@ -357,6 +375,50 @@ export async function deleteEventFuture(eventId: string, fromDate: string): Prom
   };
   await persistEvents(events);
   return true;
+}
+
+// ── Hide / Unhide ─────────────────────────────────────────────────────────────
+
+// Hide a single occurrence by adding its date to hiddenDates
+export async function hideEventOccurrence(eventId: string, occurrenceDate: string): Promise<CalendarEvent | null> {
+  const events = await readAllEvents();
+  const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
+  const idx = events.findIndex((e) => e.id === baseId);
+  if (idx === -1) return null;
+  const hiddenDates = events[idx].hiddenDates ?? [];
+  if (!hiddenDates.some((d) => new Date(d).toDateString() === new Date(occurrenceDate).toDateString())) {
+    hiddenDates.push(occurrenceDate);
+  }
+  events[idx] = { ...events[idx], hiddenDates };
+  await persistEvents(events);
+  return events[idx];
+}
+
+// Hide this occurrence and all future ones
+export async function hideEventFuture(eventId: string, fromDate: string): Promise<CalendarEvent | null> {
+  const events = await readAllEvents();
+  const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
+  const idx = events.findIndex((e) => e.id === baseId);
+  if (idx === -1) return null;
+  events[idx] = { ...events[idx], hiddenFromDate: fromDate };
+  await persistEvents(events);
+  return events[idx];
+}
+
+// Remove all hidden flags from an event/series, making it visible again
+export async function unhideEvent(eventId: string): Promise<CalendarEvent | null> {
+  const events = await readAllEvents();
+  const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
+  const idx = events.findIndex((e) => e.id === baseId);
+  if (idx === -1) return null;
+  events[idx] = {
+    ...events[idx],
+    hidden: false,
+    hiddenDates: [],
+    hiddenFromDate: undefined,
+  };
+  await persistEvents(events);
+  return events[idx];
 }
 
 export async function toggleRsvp(

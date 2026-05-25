@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import type { CalendarEvent } from "@/lib/events-store";
 import Calendar from "@/components/Calendar";
-import EventModal from "@/components/EventModal";
+import EventModal, { type HideMode } from "@/components/EventModal";
 import CreateEventModal, { type CreateEventFormData } from "@/components/CreateEventModal";
 
 interface CalendarViewProps {
@@ -62,6 +62,30 @@ export default function CalendarView({
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Delete failed");
+    await refreshEvents();
+  }
+
+  // ── Hide / Unhide event ───────────────────────────────────────────────────
+  async function handleHide(eventId: string, mode: HideMode = "all") {
+    const event = events.find((e) => e.id === eventId);
+    const res = await fetch(`/api/events/${eventId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "hide", mode, occurrenceDate: event?.startDate }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to hide event");
+    await refreshEvents();
+  }
+
+  async function handleUnhide(eventId: string) {
+    const res = await fetch(`/api/events/${eventId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "unhide" }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Failed to unhide event");
     await refreshEvents();
   }
 
@@ -158,6 +182,8 @@ export default function CalendarView({
           onClose={() => setSelectedEvent(null)}
           onRsvp={handleRsvp}
           onDelete={isAdmin ? handleDelete : undefined}
+          onHide={isAdmin ? handleHide : undefined}
+          onUnhide={isAdmin ? handleUnhide : undefined}
           onEdit={
             isAdmin
               ? (event, mode) => {
@@ -376,8 +402,14 @@ function UpcomingCard({
       <button
         onClick={onClick}
         className={`relative flex bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl overflow-hidden text-left hover:bg-[#222] transition-all w-60
-          ${isEnded ? "opacity-40 scale-95 grayscale" : ""}`}
+          ${isEnded ? "opacity-40 scale-95 grayscale" : ""}
+          ${event.hidden && isAdmin ? "opacity-50" : ""}`}
       >
+        {event.hidden && isAdmin && (
+          <span className="absolute top-1.5 right-1.5 z-10 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-black uppercase tracking-wide">
+            Hidden
+          </span>
+        )}
         {/* Full-height image on the left */}
         <div className="relative flex-shrink-0 w-20">
           {event.imageUrl ? (
@@ -413,8 +445,14 @@ function UpcomingCard({
     <button
       onClick={onClick}
       className={`relative flex-shrink-0 w-44 bg-[#1c1c1c] border border-[#2a2a2a] rounded-xl overflow-hidden text-left hover:border-[#444] hover:bg-[#222] transition-all
-        ${isEnded ? "opacity-40 scale-95 grayscale" : ""}`}
+        ${isEnded ? "opacity-40 scale-95 grayscale" : ""}
+        ${event.hidden && isAdmin ? "opacity-50" : ""}`}
     >
+      {event.hidden && isAdmin && (
+        <span className="absolute top-1.5 right-1.5 z-10 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-amber-500/90 text-black uppercase tracking-wide">
+          Hidden
+        </span>
+      )}
       {/* Photo or color bar */}
       <div className="flex-shrink-0">
         {event.imageUrl ? (

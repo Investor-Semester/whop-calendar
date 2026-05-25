@@ -1,7 +1,11 @@
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { whopsdk } from "@/lib/whop-sdk";
-import { getEventById, updateEvent, updateEventOccurrence, updateEventFuture, deleteEvent, deleteEventOccurrence, deleteEventFuture } from "@/lib/events-store";
+import {
+  getEventById, updateEvent, updateEventOccurrence, updateEventFuture,
+  deleteEvent, deleteEventOccurrence, deleteEventFuture,
+  hideEventOccurrence, hideEventFuture, unhideEvent,
+} from "@/lib/events-store";
 
 type Params = { params: Promise<{ eventId: string }> };
 
@@ -41,15 +45,30 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     }
 
     const body = await req.json();
-    const { mode, occurrenceDate, ...updates } = body;
+    const { action, mode, occurrenceDate, ...updates } = body;
 
     let updated;
-    if (mode === "single" && occurrenceDate) {
-      updated = await updateEventOccurrence(eventId, occurrenceDate, updates);
-    } else if (mode === "future" && occurrenceDate) {
-      updated = await updateEventFuture(eventId, occurrenceDate, updates);
+
+    // ── Hide / Unhide actions ─────────────────────────────────────────────────
+    if (action === "hide") {
+      if (mode === "single" && occurrenceDate) {
+        updated = await hideEventOccurrence(eventId, occurrenceDate);
+      } else if (mode === "future" && occurrenceDate) {
+        updated = await hideEventFuture(eventId, occurrenceDate);
+      } else {
+        updated = await updateEvent(eventId, { hidden: true });
+      }
+    } else if (action === "unhide") {
+      updated = await unhideEvent(eventId);
     } else {
-      updated = await updateEvent(eventId, updates);
+      // ── Regular field updates ───────────────────────────────────────────────
+      if (mode === "single" && occurrenceDate) {
+        updated = await updateEventOccurrence(eventId, occurrenceDate, updates);
+      } else if (mode === "future" && occurrenceDate) {
+        updated = await updateEventFuture(eventId, occurrenceDate, updates);
+      } else {
+        updated = await updateEvent(eventId, updates);
+      }
     }
 
     return NextResponse.json({ event: updated });

@@ -15,7 +15,8 @@ export async function GET(req: NextRequest) {
     const access = await whopsdk.users.checkAccess(experienceId, { id: userId });
     if (!access.has_access) return NextResponse.json({ error: "Access denied" }, { status: 403 });
 
-    const events = await getEventsByExperience(experienceId);
+    const includeHidden = access.access_level === "admin";
+    const events = await getEventsByExperience(experienceId, includeHidden);
     return NextResponse.json({ events, userId, accessLevel: access.access_level });
   } catch (err) {
     console.error("[GET /api/events]", err);

@@ -226,6 +226,7 @@ export default function Calendar({
               <div className="flex flex-col gap-0.5 overflow-hidden">
                 {dayEvents.slice(0, MAX_VISIBLE).map((event) => {
                   const c = colorClasses(event.color);
+                  const isHidden = event.hidden && isAdmin;
                   return (
                     <button
                       key={event.id}
@@ -237,10 +238,11 @@ export default function Calendar({
                         text-left text-xs px-1.5 py-0.5 rounded truncate font-medium
                         ${c.pill} hover:opacity-80 transition-opacity
                         ${isPast ? "opacity-30 grayscale" : ""}
+                        ${isHidden ? "opacity-40 line-through" : ""}
                       `}
-                      title={event.title}
+                      title={isHidden ? `${event.title} (hidden from users)` : event.title}
                     >
-                      {event.title}
+                      {isHidden ? "🚫 " : ""}{event.title}
                     </button>
                   );
                 })}
