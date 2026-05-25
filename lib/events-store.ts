@@ -70,6 +70,7 @@ export interface UpdateEventInput {
   imageUrl?: string;
   maxAttendees?: number | null;
   color?: EventColor;
+  hidden?: boolean;
 }
 
 // Redis client
