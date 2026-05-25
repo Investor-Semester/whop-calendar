@@ -422,7 +422,7 @@ function UpcomingCard({
         )}
       </div>
       <div className="p-3">
-        <div className={`text-xs font-bold px-2 py-0.5 rounded-full inline-block mb-1.5 text-white ${COLOR_BG[event.color]}`}>
+        <div className={`text-sm font-bold px-3 py-1.5 rounded-lg block w-full text-center mb-2 text-white ${COLOR_BG[event.color]}`}>
           {start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
         </div>
         <p className={`text-sm font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
