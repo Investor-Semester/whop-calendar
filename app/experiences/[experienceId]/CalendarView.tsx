@@ -131,7 +131,7 @@ export default function CalendarView({
         </div>
 
         {/* ── Upcoming Events Strip ── */}
-        <UpcomingStrip events={events} onEventClick={setSelectedEvent} />
+        <UpcomingStrip events={events} onEventClick={setSelectedEvent} isAdmin={isAdmin} />
 
         {/* ── Calendar ── */}
         <Calendar
@@ -244,9 +244,11 @@ export default function CalendarView({
 function UpcomingStrip({
   events,
   onEventClick,
+  isAdmin = false,
 }: {
   events: CalendarEvent[];
   onEventClick: (e: CalendarEvent) => void;
+  isAdmin?: boolean;
 }) {
   const now = new Date();
 
@@ -292,7 +294,7 @@ function UpcomingStrip({
         {/* Past events from this week — horizontal cards (shaded) */}
         {pastWeekEvents.map((event) => (
           <div key={event.id} className="flex-shrink-0">
-            <UpcomingCard event={event} onClick={() => onEventClick(event)} />
+            <UpcomingCard event={event} onClick={() => onEventClick(event)} isAdmin={isAdmin} />
           </div>
         ))}
 
@@ -310,7 +312,7 @@ function UpcomingStrip({
             </div>
             <div className="flex flex-col gap-2">
               {todayEvents.map((event) => (
-                <UpcomingCard key={event.id} event={event} onClick={() => onEventClick(event)} compact />
+                <UpcomingCard key={event.id} event={event} onClick={() => onEventClick(event)} compact isAdmin={isAdmin} />
               ))}
             </div>
           </div>
@@ -324,7 +326,7 @@ function UpcomingStrip({
         {/* Rest of week — horizontal cards */}
         {weekEvents.map((event) => (
           <div key={event.id} className="flex-shrink-0">
-            <UpcomingCard event={event} onClick={() => onEventClick(event)} />
+            <UpcomingCard event={event} onClick={() => onEventClick(event)} isAdmin={isAdmin} />
           </div>
         ))}
       </div>
@@ -354,10 +356,12 @@ function UpcomingCard({
   event,
   onClick,
   compact = false,
+  isAdmin = false,
 }: {
   event: CalendarEvent;
   onClick: () => void;
   compact?: boolean;
+  isAdmin?: boolean;
 }) {
   const now = new Date();
   const start = new Date(event.startDate);
@@ -366,40 +370,46 @@ function UpcomingCard({
   const isLive = now >= start && now <= end;
   const isEnded = now > end;
 
+  // ── Today card (compact) — vertical layout matching regular cards ──────────
   if (compact) {
     return (
       <button
         onClick={onClick}
-        className={`relative flex items-center gap-2.5 bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl p-2.5 text-left hover:bg-[#222] transition-all w-56
+        className={`relative flex-shrink-0 w-44 bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl overflow-hidden text-left hover:border-[#555] hover:bg-[#222] transition-all
           ${isEnded ? "opacity-40 scale-95 grayscale" : ""}`}
       >
-        <div className="relative flex-shrink-0">
+        {/* Photo or color bar */}
+        <div className="relative">
           {event.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={event.imageUrl} alt={event.title} className="w-10 h-10 rounded-lg object-cover" />
+            <img src={event.imageUrl} alt={event.title} className="w-full h-24 object-cover" />
           ) : (
-            <div className={`w-10 h-10 rounded-lg ${COLOR_BG[event.color]}`} />
+            <div className={`w-full h-24 ${COLOR_BG[event.color]}`} />
+          )}
+          {isLive && (
+            <span className="absolute top-2 left-2 flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+              LIVE
+            </span>
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <p className={`text-sm font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
-          <p className="text-xs text-[#888]">
-            {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-          </p>
-          <p className="text-xs text-[#555]">
-            {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
-          </p>
-        </div>
-        {isLive && (
-          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-1.5 px-1">
-            <span className="w-5 h-5 rounded-full bg-red-500 animate-pulse block" />
-            <span className="text-red-500 text-sm font-black uppercase tracking-widest leading-none">LIVE</span>
+        <div className="p-3">
+          {/* "Today @ xx:xx AM/PM" badge */}
+          <div className={`text-sm font-bold px-3 py-1.5 rounded-lg block w-full text-center mb-2 text-white ${COLOR_BG[event.color]}`}>
+            Today @ {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
           </div>
-        )}
+          <p className={`text-base font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
+          {isAdmin && (
+            <p className="text-xs text-[#666] mt-1">
+              {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
+            </p>
+          )}
+        </div>
       </button>
     );
   }
 
+  // ── Regular card ─────────────────────────────────────────────────────────────
   return (
     <button
       onClick={onClick}
@@ -429,9 +439,11 @@ function UpcomingCard({
         <p className="text-xs text-[#888] mt-0.5">
           {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
         </p>
-        <p className="text-xs text-[#666] mt-1">
-          {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
-        </p>
+        {isAdmin && (
+          <p className="text-xs text-[#666] mt-1">
+            {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
+          </p>
+        )}
       </div>
     </button>
   );
