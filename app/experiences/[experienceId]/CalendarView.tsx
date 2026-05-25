@@ -386,19 +386,20 @@ function UpcomingCard({
           ) : (
             <div className={`w-full h-full ${COLOR_BG[event.color]}`} />
           )}
-          {isLive && (
-            <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase">
-              <span className="w-1 h-1 rounded-full bg-white animate-pulse inline-block" />
-              LIVE
-            </span>
-          )}
         </div>
 
         {/* Right: badge + title */}
         <div className="flex flex-col justify-center p-3 min-w-0 flex-1 gap-2">
-          <div className={`text-xs font-bold px-2 py-1 rounded-md text-center text-white ${COLOR_BG[event.color]}`}>
-            Today @ {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
-          </div>
+          {isLive ? (
+            <div className="flex items-center justify-center gap-1.5 bg-red-500 px-2 py-1 rounded-md">
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
+              <span className="text-xs font-bold text-white uppercase tracking-wide">Live Now</span>
+            </div>
+          ) : (
+            <div className={`text-xs font-bold px-2 py-1 rounded-md text-center text-white ${COLOR_BG[event.color]}`}>
+              Today @ {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
+            </div>
+          )}
           <p className={`text-sm font-bold truncate leading-snug ${isEnded ? "text-[#666]" : "text-white"}`}>
             {event.title}
           </p>
@@ -415,24 +416,25 @@ function UpcomingCard({
         ${isEnded ? "opacity-40 scale-95 grayscale" : ""}`}
     >
       {/* Photo or color bar */}
-      <div className="relative">
+      <div className="flex-shrink-0">
         {event.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={event.imageUrl} alt={event.title} className="w-full h-24 object-cover" />
         ) : (
           <div className={`w-full h-24 ${COLOR_BG[event.color]}`} />
         )}
-        {isLive && (
-          <span className="absolute top-2 left-2 flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
-            LIVE
-          </span>
-        )}
       </div>
       <div className="p-3">
-        <div className={`text-sm font-bold px-3 py-1.5 rounded-lg block w-full text-center mb-2 text-white ${COLOR_BG[event.color]}`}>
-          {start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-        </div>
+        {isLive ? (
+          <div className="flex items-center justify-center gap-1.5 bg-red-500 px-3 py-1.5 rounded-lg w-full mb-2">
+            <span className="w-2 h-2 rounded-full bg-white animate-pulse inline-block" />
+            <span className="text-sm font-bold text-white uppercase tracking-wide">Live Now</span>
+          </div>
+        ) : (
+          <div className={`text-sm font-bold px-3 py-1.5 rounded-lg block w-full text-center mb-2 text-white ${COLOR_BG[event.color]}`}>
+            {start.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
+          </div>
+        )}
         <p className={`text-sm font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
         <p className="text-xs text-[#888] mt-0.5">
           {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
