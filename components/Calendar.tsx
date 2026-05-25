@@ -170,7 +170,7 @@ export default function Calendar({
           const cellDate = new Date(year, month, day);
           const isToday = isSameDay(cellDate, today);
           const isPast = cellDate < todayStart;
-          const isFutureLocked = cellDate > endOfCurrentWeek;
+          const isFutureLocked = !isAdmin && cellDate > endOfCurrentWeek;
           const dayEvents = eventsByDay[day] ?? [];
           const MAX_VISIBLE = 3;
 
