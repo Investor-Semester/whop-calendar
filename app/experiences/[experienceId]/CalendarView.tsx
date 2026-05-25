@@ -370,40 +370,38 @@ function UpcomingCard({
   const isLive = now >= start && now <= end;
   const isEnded = now > end;
 
-  // ── Today card (compact) — vertical layout matching regular cards ──────────
+  // ── Today card (compact) — horizontal layout, full-height image ─────────────
   if (compact) {
     return (
       <button
         onClick={onClick}
-        className={`relative flex-shrink-0 w-44 bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl overflow-hidden text-left hover:border-[#555] hover:bg-[#222] transition-all
+        className={`relative flex bg-[#1c1c1c] border ${COLOR_BORDER[event.color]} rounded-xl overflow-hidden text-left hover:bg-[#222] transition-all w-60
           ${isEnded ? "opacity-40 scale-95 grayscale" : ""}`}
       >
-        {/* Photo or color bar */}
-        <div className="relative">
+        {/* Full-height image on the left */}
+        <div className="relative flex-shrink-0 w-20">
           {event.imageUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={event.imageUrl} alt={event.title} className="w-full h-24 object-cover" />
+            <img src={event.imageUrl} alt={event.title} className="w-full h-full object-cover" />
           ) : (
-            <div className={`w-full h-24 ${COLOR_BG[event.color]}`} />
+            <div className={`w-full h-full ${COLOR_BG[event.color]}`} />
           )}
           {isLive && (
-            <span className="absolute top-2 left-2 flex items-center gap-1 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide">
-              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse inline-block" />
+            <span className="absolute top-1.5 left-1.5 flex items-center gap-0.5 bg-red-500 text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase">
+              <span className="w-1 h-1 rounded-full bg-white animate-pulse inline-block" />
               LIVE
             </span>
           )}
         </div>
-        <div className="p-3">
-          {/* "Today @ xx:xx AM/PM" badge */}
-          <div className={`text-sm font-bold px-3 py-1.5 rounded-lg block w-full text-center mb-2 text-white ${COLOR_BG[event.color]}`}>
+
+        {/* Right: badge + title */}
+        <div className="flex flex-col justify-center p-3 min-w-0 flex-1 gap-2">
+          <div className={`text-xs font-bold px-2 py-1 rounded-md text-center text-white ${COLOR_BG[event.color]}`}>
             Today @ {start.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}
           </div>
-          <p className={`text-base font-semibold truncate ${isEnded ? "text-[#666]" : "text-white"}`}>{event.title}</p>
-          {isAdmin && (
-            <p className="text-xs text-[#666] mt-1">
-              {event.rsvps.length} going{event.maxAttendees !== null && ` / ${event.maxAttendees}`}
-            </p>
-          )}
+          <p className={`text-sm font-bold truncate leading-snug ${isEnded ? "text-[#666]" : "text-white"}`}>
+            {event.title}
+          </p>
         </div>
       </button>
     );

@@ -177,15 +177,22 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
             </div>
           )}
 
-          {/* Attendees */}
-          <div className="flex items-center gap-2.5 mb-4">
-            <span className="text-sm font-medium text-[#888]">Attending:</span>
-            <p className="text-sm text-[#ccc]">
-              {event.rsvps.length}
-              {event.maxAttendees !== null && <span className="text-[#888]"> / {event.maxAttendees} max</span>}
-              {isFull && !hasRsvpd && <span className="ml-2 text-rose-400 font-medium">Full</span>}
-            </p>
-          </div>
+          {/* Attendees — visible to admins only */}
+          {isAdmin ? (
+            <div className="flex items-center gap-2.5 mb-4">
+              <span className="text-sm font-medium text-[#888]">Attending:</span>
+              <p className="text-sm text-[#ccc]">
+                {event.rsvps.length}
+                {event.maxAttendees !== null && <span className="text-[#888]"> / {event.maxAttendees} max</span>}
+                {isFull && !hasRsvpd && <span className="ml-2 text-rose-400 font-medium">Full</span>}
+              </p>
+            </div>
+          ) : (
+            /* Non-admin still sees if event is full */
+            isFull && !hasRsvpd && (
+              <p className="text-sm text-rose-400 font-medium mb-4">This event is full</p>
+            )
+          )}
 
           {/* Description */}
           {event.description && (
