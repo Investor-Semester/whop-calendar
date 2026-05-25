@@ -63,6 +63,15 @@ export default function Calendar({
   isAdmin = false,
 }: CalendarProps) {
   const today = new Date();
+
+  // Current week boundaries: Sunday 00:00:00 → Saturday 23:59:59
+  const todayStart = new Date(today);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const endOfCurrentWeek = new Date(today);
+  endOfCurrentWeek.setDate(today.getDate() + (6 - today.getDay()));
+  endOfCurrentWeek.setHours(23, 59, 59, 999);
+
   const [viewDate, setViewDate] = useState(
     new Date(today.getFullYear(), today.getMonth(), 1)
   );
@@ -160,18 +169,34 @@ export default function Calendar({
 
           const cellDate = new Date(year, month, day);
           const isToday = isSameDay(cellDate, today);
+          const isPast = cellDate < todayStart;
+          const isFutureLocked = cellDate > endOfCurrentWeek;
           const dayEvents = eventsByDay[day] ?? [];
           const MAX_VISIBLE = 3;
+
+          // ── Locked future cell (beyond current week) ──
+          if (isFutureLocked) {
+            return (
+              <div
+                key={day}
+                className="bg-[#0c0c0c] h-28 p-2 flex flex-col"
+              >
+                <span className="text-sm font-medium w-7 h-7 flex items-center justify-center text-[#2a2a2a]">
+                  {day}
+                </span>
+              </div>
+            );
+          }
 
           return (
             <div
               key={day}
               className={`
-                bg-[#141414] h-28 p-2 flex flex-col
-                ${isAdmin ? "cursor-pointer hover:bg-[#1a1a1a]" : ""}
-                group relative transition-colors
+                h-28 p-2 flex flex-col group relative transition-colors
+                ${isPast ? "bg-[#111]" : "bg-[#141414]"}
+                ${isAdmin && !isPast ? "cursor-pointer hover:bg-[#1a1a1a]" : ""}
               `}
-              onClick={() => isAdmin && onDayClick?.(cellDate)}
+              onClick={() => isAdmin && !isPast && onDayClick?.(cellDate)}
             >
               {/* Day number */}
               <div className="flex items-start justify-between mb-1">
@@ -180,15 +205,17 @@ export default function Calendar({
                     text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full
                     ${isToday
                       ? "bg-indigo-600 text-white"
-                      : "text-[#ccc] group-hover:text-white"
+                      : isPast
+                        ? "text-[#444]"
+                        : "text-[#ccc] group-hover:text-white"
                     }
                   `}
                 >
                   {day}
                 </span>
 
-                {/* Admin "+" button appears on hover */}
-                {isAdmin && (
+                {/* Admin "+" button appears on hover (not on past days) */}
+                {isAdmin && !isPast && (
                   <span className="text-[#555] group-hover:text-[#888] text-lg leading-none opacity-0 group-hover:opacity-100 transition-opacity">
                     +
                   </span>
@@ -209,6 +236,7 @@ export default function Calendar({
                       className={`
                         text-left text-xs px-1.5 py-0.5 rounded truncate font-medium
                         ${c.pill} hover:opacity-80 transition-opacity
+                        ${isPast ? "opacity-30 grayscale" : ""}
                       `}
                       title={event.title}
                     >
@@ -217,7 +245,7 @@ export default function Calendar({
                   );
                 })}
                 {dayEvents.length > MAX_VISIBLE && (
-                  <span className="text-xs text-[#888] px-1">
+                  <span className={`text-xs px-1 ${isPast ? "text-[#444]" : "text-[#888]"}`}>
                     +{dayEvents.length - MAX_VISIBLE} more
                   </span>
                 )}
