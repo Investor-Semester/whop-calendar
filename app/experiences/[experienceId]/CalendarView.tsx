@@ -278,11 +278,6 @@ function UpcomingStrip({
 }) {
   const now = new Date();
 
-  // Start of current week (Sunday 00:00:00)
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-
   // End of current week (Saturday 23:59:59)
   const endOfWeek = new Date(now);
   endOfWeek.setDate(now.getDate() + (6 - now.getDay()));
@@ -292,12 +287,6 @@ function UpcomingStrip({
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date(now);
   todayEnd.setHours(23, 59, 59, 999);
-
-  // Past events from earlier this week (Sunday through yesterday)
-  const pastWeekEvents = events.filter((e) => {
-    const s = new Date(e.startDate);
-    return s >= startOfWeek && s < todayStart;
-  });
 
   const todayEvents = events.filter((e) => {
     const s = new Date(e.startDate);
@@ -309,7 +298,7 @@ function UpcomingStrip({
     return s > todayEnd && s <= endOfWeek;
   });
 
-  if (pastWeekEvents.length === 0 && todayEvents.length === 0 && weekEvents.length === 0) return null;
+  if (todayEvents.length === 0 && weekEvents.length === 0) return null;
 
   return (
     <div className="mb-8">
@@ -317,18 +306,6 @@ function UpcomingStrip({
         This Week
       </h2>
       <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4">
-        {/* Past events from this week — horizontal cards (shaded) */}
-        {pastWeekEvents.map((event) => (
-          <div key={event.id} className="flex-shrink-0">
-            <UpcomingCard event={event} onClick={() => onEventClick(event)} isAdmin={isAdmin} />
-          </div>
-        ))}
-
-        {/* Divider between past and today */}
-        {pastWeekEvents.length > 0 && (todayEvents.length > 0 || weekEvents.length > 0) && (
-          <div className="flex-shrink-0 w-px bg-[#2a2a2a] self-stretch" />
-        )}
-
         {/* Today — vertical stack */}
         {todayEvents.length > 0 && (
           <div className="flex-shrink-0 flex gap-3">
