@@ -186,6 +186,7 @@ export default function CalendarView({
 
       {(showCreateModal || editingEvent) && (
         <CreateEventModal
+          experienceId={experienceId}
           defaultDate={createDate}
           editEvent={editingEvent ?? undefined}
           onClose={() => {

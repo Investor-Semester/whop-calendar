@@ -6,7 +6,8 @@
     "dev": "whop-proxy --command \"next dev --turbopack\"",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test": "node --test tests/*.test.cjs"
   },
   "dependencies": {
     "@upstash/redis": "^1.38.0",

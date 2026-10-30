@@ -1,12 +1,11 @@
-import { headers } from "next/headers";
+import { verifiedCalendarUser } from "@/lib/calendar-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { whopsdk } from "@/lib/whop-sdk";
 import { getEventsByExperience, createEvent } from "@/lib/events-store";
 
 export async function GET(req: NextRequest) {
   try {
-    const headersList = await headers();
-    const { userId } = await whopsdk.verifyUserToken(headersList);
+    const userId = await verifiedCalendarUser();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const experienceId = req.nextUrl.searchParams.get("experienceId");
@@ -26,8 +25,7 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const headersList = await headers();
-    const { userId } = await whopsdk.verifyUserToken(headersList);
+    const userId = await verifiedCalendarUser();
     if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
     const body = await req.json();
@@ -42,7 +40,7 @@ export async function POST(req: NextRequest) {
     }
 
     const access = await whopsdk.users.checkAccess(experienceId, { id: userId });
-    if (access.access_level !== "admin") {
+    if (!access.has_access || access.access_level !== "admin") {
       return NextResponse.json({ error: "Only admins can create events" }, { status: 403 });
     }
 

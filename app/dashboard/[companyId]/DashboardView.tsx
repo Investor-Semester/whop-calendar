@@ -230,6 +230,7 @@ export default function DashboardView({ companyId, userId }: DashboardViewProps)
       {/* ── Modals ── */}
       {(showCreateModal || editingEvent) && (
         <CreateEventModal
+          experienceId={editingEvent?.experienceId ?? experienceId.trim()}
           editEvent={editingEvent ?? undefined}
           onClose={() => {
             setShowCreateModal(false);

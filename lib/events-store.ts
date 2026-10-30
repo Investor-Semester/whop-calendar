@@ -1,3 +1,4 @@
+import { validateEventUpdates } from "./event-validation";
 /**
  * events-store.ts - Upstash Redis-backed event store.
  */
@@ -216,6 +217,7 @@ export async function createEvent(input: CreateEventInput): Promise<CalendarEven
 }
 
 export async function updateEvent(eventId: string, updates: UpdateEventInput): Promise<CalendarEvent | null> {
+  updates = validateEventUpdates(updates);
   const events = await readAllEvents();
   const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
   const idx = events.findIndex((e) => e.id === baseId);
@@ -240,6 +242,7 @@ export async function updateEventOccurrence(
   occurrenceDate: string,
   updates: UpdateEventInput
 ): Promise<CalendarEvent | null> {
+  updates = validateEventUpdates(updates);
   const events = await readAllEvents();
   const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
   const idx = events.findIndex((e) => e.id === baseId);
@@ -285,6 +288,7 @@ export async function updateEventFuture(
   fromDate: string,
   updates: UpdateEventInput
 ): Promise<CalendarEvent | null> {
+  updates = validateEventUpdates(updates);
   const events = await readAllEvents();
   const baseId = eventId.includes("_occ") ? eventId.split("_occ")[0] : eventId;
   const idx = events.findIndex((e) => e.id === baseId);

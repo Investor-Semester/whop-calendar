@@ -27,6 +27,7 @@ export interface CreateEventFormData {
 }
 
 interface CreateEventModalProps {
+  experienceId: string;
   defaultDate?: Date;
   editEvent?: CalendarEvent;
   onClose: () => void;
@@ -41,7 +42,7 @@ function toLocalDateTimeValue(date: Date) {
 const ic = "w-full bg-[#141414] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-indigo-500 transition-colors";
 const lc = "block text-xs font-medium text-[#888] mb-1.5 uppercase tracking-wide";
 
-export default function CreateEventModal({ defaultDate, editEvent, onClose, onSave }: CreateEventModalProps) {
+export default function CreateEventModal({ experienceId, defaultDate, editEvent, onClose, onSave }: CreateEventModalProps) {
   const isEditing = !!editEvent;
 
   const defaultStart = editEvent
@@ -93,7 +94,7 @@ export default function CreateEventModal({ defaultDate, editEvent, onClose, onSa
     try {
       const fd = new FormData();
       fd.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: fd });
+      const res = await fetch(`/api/upload?experienceId=${encodeURIComponent(experienceId)}`, { method: "POST", body: fd });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Upload failed");
       setImageUrl(data.url);
@@ -163,7 +164,7 @@ export default function CreateEventModal({ defaultDate, editEvent, onClose, onSa
                 <span className="text-xs">{uploadingImage ? "Uploading..." : "Click to upload cover image"}</span>
               </button>
             )}
-            <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+            <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/gif,image/webp,image/avif" className="hidden" onChange={handleImageChange} />
           </div>
 
           {/* Title */}
