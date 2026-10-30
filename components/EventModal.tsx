@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState } from "react";
 import type { CalendarEvent } from "@/lib/events-store";
@@ -33,49 +33,6 @@ function formatTime(iso: string) {
 
 function isSameDay(a: string, b: string) {
   return new Date(a).toDateString() === new Date(b).toDateString();
-}
-
-function toICSDate(iso: string) {
-  return iso.replace(/[-:]/g, "").split(".")[0] + "Z";
-}
-
-function generateICS(event: CalendarEvent): string {
-  const lines = [
-    "BEGIN:VCALENDAR",
-    "VERSION:2.0",
-    "PRODID:-//Whop Calendar//EN",
-    "BEGIN:VEVENT",
-    `DTSTART:${toICSDate(event.startDate)}`,
-    `DTEND:${toICSDate(event.endDate)}`,
-    `SUMMARY:${event.title.replace(/,/g, "\\,")}`,
-    event.description ? `DESCRIPTION:${event.description.replace(/\n/g, "\\n").replace(/,/g, "\\,")}` : null,
-    event.meetingLink ? `URL:${event.meetingLink}` : event.location ? `LOCATION:${event.location}` : null,
-    `UID:${event.id}@whop-calendar`,
-    "END:VEVENT",
-    "END:VCALENDAR",
-  ].filter(Boolean).join("\r\n");
-  return lines;
-}
-
-function downloadICS(event: CalendarEvent) {
-  const blob = new Blob([generateICS(event)], { type: "text/calendar;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${event.title.replace(/[^a-z0-9]/gi, "_")}.ics`;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-function getGoogleCalendarUrl(event: CalendarEvent): string {
-  const params = new URLSearchParams({
-    action: "TEMPLATE",
-    text: event.title,
-    dates: `${toICSDate(event.startDate)}/${toICSDate(event.endDate)}`,
-    details: [event.description, event.meetingLink ? `Join: ${event.meetingLink}` : ""].filter(Boolean).join("\n\n"),
-    location: event.meetingLink || event.location || "",
-  });
-  return `https://calendar.google.com/calendar/render?${params}`;
 }
 
 const MEETING_LABELS: Record<string, string> = {
@@ -350,17 +307,6 @@ export default function EventModal({ event, currentUserId, isAdmin, onClose, onR
             </div>
           )}
 
-          {/* Calendar sync */}
-          <div className="flex gap-2 border-t border-[#2a2a2a] pt-3">
-            <a href={getGoogleCalendarUrl(event)} target="_blank" rel="noopener noreferrer"
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-medium bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-colors">
-              Add to Google Calendar
-            </a>
-            <button onClick={() => downloadICS(event)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl text-xs font-medium bg-[#1a1a1a] border border-[#2a2a2a] text-[#888] hover:text-white hover:border-[#444] transition-colors">
-              Download for Apple / iCal
-            </button>
-          </div>
         </div>
       </div>
     </div>
