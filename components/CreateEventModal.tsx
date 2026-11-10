@@ -1,6 +1,7 @@
 ﻿"use client";
 
 import { useState, useRef } from "react";
+import { dateTimeInputToInstant, dateTimeInputValue, eventTimeZone } from "@/lib/event-time";
 import type { CalendarEvent, EventColor, MeetingType, RecurrenceRule } from "@/lib/events-store";
 
 const COLORS: { value: EventColor; label: string; bg: string }[] = [
@@ -16,6 +17,7 @@ export interface CreateEventFormData {
   title: string;
   description: string;
   startDate: string;
+  timeZone: string;
   endDate: string;
   location?: string;
   meetingType?: MeetingType;
@@ -34,16 +36,15 @@ interface CreateEventModalProps {
   onSave: (data: CreateEventFormData) => Promise<void>;
 }
 
-function toLocalDateTimeValue(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
-
 const ic = "w-full bg-[#141414] border border-[#2a2a2a] rounded-lg px-3 py-2.5 text-white text-sm placeholder-[#555] focus:outline-none focus:border-indigo-500 transition-colors";
 const lc = "block text-xs font-medium text-[#888] mb-1.5 uppercase tracking-wide";
 
 export default function CreateEventModal({ experienceId, defaultDate, editEvent, onClose, onSave }: CreateEventModalProps) {
   const isEditing = !!editEvent;
+  const [timeZone] = useState(() => editEvent
+    ? eventTimeZone(editEvent)
+    : Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const toLocalDateTimeValue = (date: Date) => dateTimeInputValue(date, timeZone);
 
   const defaultStart = editEvent
     ? toLocalDateTimeValue(new Date(editEvent.startDate))
@@ -111,11 +112,22 @@ export default function CreateEventModal({ experienceId, defaultDate, editEvent,
     if (!title.trim()) return setError("Title is required");
     if (!startDate) return setError("Start date is required");
     if (!endDate) return setError("End date is required");
-    if (new Date(endDate) <= new Date(startDate)) return setError("End date must be after start date");
+    let start: Date;
+    let end: Date;
+    try {
+      start = dateTimeInputToInstant(startDate, timeZone, editEvent?.startDate);
+      end = dateTimeInputToInstant(endDate, timeZone, editEvent?.endDate);
+    } catch (err) {
+      return setError(err instanceof Error ? err.message : "Invalid event time");
+    }
+    if (end <= start) return setError("End date must be after start date");
 
     const recurrence: RecurrenceRule | undefined = recurrenceFreq
       ? { frequency: recurrenceFreq, interval: parseInt(recurrenceInterval, 10) || 1,
-          endDate: recurrenceEndDate ? new Date(recurrenceEndDate).toISOString() : undefined }
+          // Preserve exact cutoffs from series splits when the date picker was not changed.
+          endDate: recurrenceEndDate === (editEvent?.recurrence?.endDate?.split("T")[0] ?? "")
+            ? editEvent?.recurrence?.endDate : recurrenceEndDate || undefined,
+          count: editEvent?.recurrence?.count }
       : undefined;
 
     setSaving(true);
@@ -123,7 +135,7 @@ export default function CreateEventModal({ experienceId, defaultDate, editEvent,
     try {
       await onSave({
         title: title.trim(), description: description.trim(),
-        startDate: new Date(startDate).toISOString(), endDate: new Date(endDate).toISOString(),
+        startDate: start.toISOString(), endDate: end.toISOString(), timeZone,
         location: location.trim() || undefined,
         meetingType: meetingType || undefined, meetingLink: meetingLink.trim() || undefined,
         recurrence, imageUrl: imageUrl || undefined,
@@ -175,6 +187,7 @@ export default function CreateEventModal({ experienceId, defaultDate, editEvent,
           </div>
 
           {/* Dates */}
+          <p className="text-xs text-[#888]">Event time zone: {timeZone}. Repeating events keep this local time when the clocks change.</p>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={lc}>Start *</label>
@@ -182,9 +195,9 @@ export default function CreateEventModal({ experienceId, defaultDate, editEvent,
                 onChange={(e) => {
                   setStartDate(e.target.value);
                   if (e.target.value) {
-                    const d = new Date(e.target.value);
-                    d.setHours(d.getHours() + 1);
-                    if (!endDate || new Date(endDate) <= new Date(e.target.value)) setEndDate(toLocalDateTimeValue(d));
+                    const d = new Date(e.target.value + ":00Z");
+                    d.setUTCHours(d.getUTCHours() + 1);
+                    if (!endDate || endDate <= e.target.value) setEndDate(d.toISOString().slice(0, 16));
                   }
                 }}
                 className={ic} style={{ colorScheme: "dark" }} />

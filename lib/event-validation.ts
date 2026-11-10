@@ -1,3 +1,4 @@
+import { isValidTimeZone } from "./event-time";
 import type { UpdateEventInput } from "./events-store";
 
 export class InvalidEventPatch extends Error {}
@@ -11,7 +12,7 @@ function date(value: unknown): value is string {
 }
 
 const fields = new Set([
-  "title", "description", "startDate", "endDate", "location", "meetingType",
+  "title", "description", "startDate", "endDate", "timeZone", "location", "meetingType",
   "meetingLink", "recurrence", "imageUrl", "maxAttendees", "color", "hidden",
 ]);
 
@@ -32,6 +33,8 @@ export function validateEventUpdates(value: unknown): UpdateEventInput {
       }
     } else if (key === "startDate" || key === "endDate") {
       if (!date(field)) throw new InvalidEventPatch(`Invalid ${key}`);
+    } else if (key === "timeZone") {
+      if (!isValidTimeZone(field)) throw new InvalidEventPatch("Invalid timeZone");
     } else if (key === "meetingType") {
       if (typeof field !== "string" || !["zoom", "google-meet", "other"].includes(field)) throw new InvalidEventPatch("Invalid meetingType");
     } else if (key === "color") {

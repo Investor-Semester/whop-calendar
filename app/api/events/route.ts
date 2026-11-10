@@ -1,3 +1,4 @@
+import { InvalidEventPatch, validateEventUpdates } from "@/lib/event-validation";
 import { verifiedCalendarUser } from "@/lib/calendar-auth";
 import { NextRequest, NextResponse } from "next/server";
 import { whopsdk } from "@/lib/whop-sdk";
@@ -30,7 +31,7 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json();
     const {
-      experienceId, title, description, startDate, endDate,
+      experienceId, title, description, startDate, endDate, timeZone,
       location, meetingType, meetingLink, recurrence, imageUrl,
       maxAttendees, color,
     } = body;
@@ -44,10 +45,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Only admins can create events" }, { status: 403 });
     }
 
+    validateEventUpdates({ title, description, startDate, endDate, timeZone, recurrence });
+    if (Date.parse(endDate) <= Date.parse(startDate)) throw new InvalidEventPatch("End date must be after start date");
     const event = await createEvent({
       experienceId, title,
       description: description ?? "",
-      startDate, endDate,
+      startDate, endDate, timeZone,
       location, meetingType, meetingLink, recurrence, imageUrl,
       maxAttendees: maxAttendees ?? null,
       createdBy: userId, color,
@@ -55,6 +58,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ event }, { status: 201 });
   } catch (err) {
+    if (err instanceof InvalidEventPatch) return NextResponse.json({ error: err.message }, { status: 400 });
     console.error("[POST /api/events]", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
   }

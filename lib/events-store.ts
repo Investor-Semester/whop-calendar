@@ -1,4 +1,6 @@
 import { validateEventUpdates } from "./event-validation";
+import { eventDateKey, eventTimeZone } from "./event-time";
+import { expandRecurringEvent } from "./recurrence";
 /**
  * events-store.ts - Upstash Redis-backed event store.
  */
@@ -22,6 +24,7 @@ export interface CalendarEvent {
   title: string;
   description: string;
   startDate: string;
+  timeZone?: string;
   endDate: string;
   location?: string;
   meetingType?: MeetingType;
@@ -48,6 +51,7 @@ export interface CreateEventInput {
   title: string;
   description: string;
   startDate: string;
+  timeZone?: string;
   endDate: string;
   location?: string;
   meetingType?: MeetingType;
@@ -63,6 +67,7 @@ export interface UpdateEventInput {
   title?: string;
   description?: string;
   startDate?: string;
+  timeZone?: string;
   endDate?: string;
   location?: string;
   meetingType?: MeetingType;
@@ -102,73 +107,6 @@ function generateId(): string {
 
 // Recurrence expansion
 
-function expandRecurringEvent(base: CalendarEvent): CalendarEvent[] {
-  if (!base.recurrence) return [base];
-
-  const { frequency, interval, endDate, count } = base.recurrence;
-  const occurrences: CalendarEvent[] = [];
-
-  const windowStart = new Date();
-  windowStart.setMonth(windowStart.getMonth() - 1);
-  windowStart.setDate(1);
-
-  const windowEnd = new Date();
-  windowEnd.setMonth(windowEnd.getMonth() + 12);
-
-  const eventDuration =
-    new Date(base.endDate).getTime() - new Date(base.startDate).getTime();
-
-  let current = new Date(base.startDate);
-  let idx = 0;
-  const maxCount = count ?? 500;
-
-  while (idx < maxCount) {
-    const occEnd = new Date(current.getTime() + eventDuration);
-
-    if (endDate && current > new Date(endDate)) break;
-    if (current > windowEnd) break;
-
-    const occStart = current.toISOString();
-    const isExcluded = base.excludedDates?.some(
-      (d) => new Date(d).toDateString() === current.toDateString()
-    );
-
-    // Determine per-occurrence hidden state
-    const isHiddenByDate = base.hiddenDates?.some(
-      (d) => new Date(d).toDateString() === current.toDateString()
-    );
-    const isHiddenFromDate = base.hiddenFromDate
-      ? current >= new Date(base.hiddenFromDate)
-      : false;
-    const occHidden = base.hidden || isHiddenByDate || isHiddenFromDate;
-
-    if (current >= windowStart && !isExcluded) {
-      occurrences.push({
-        ...base,
-        id: idx === 0 ? base.id : `${base.id}_occ${idx}`,
-        startDate: occStart,
-        endDate: occEnd.toISOString(),
-        recurringBaseId: base.id,
-        hidden: occHidden,
-      });
-    }
-
-    const next = new Date(current);
-    switch (frequency) {
-      case "daily":   next.setDate(next.getDate() + interval); break;
-      case "weekly":  next.setDate(next.getDate() + 7 * interval); break;
-      case "monthly": next.setMonth(next.getMonth() + interval); break;
-      case "custom":  next.setDate(next.getDate() + interval); break;
-    }
-
-    if (next <= current) break;
-    current = next;
-    idx++;
-  }
-
-  return occurrences;
-}
-
 // Public API (all async)
 
 export async function getEventsByExperience(
@@ -199,6 +137,7 @@ export async function createEvent(input: CreateEventInput): Promise<CalendarEven
     title: input.title,
     description: input.description,
     startDate: input.startDate,
+    timeZone: eventTimeZone(input),
     endDate: input.endDate,
     location: input.location,
     meetingType: input.meetingType,
@@ -265,6 +204,7 @@ export async function updateEventOccurrence(
     title: updates.title ?? base.title,
     description: updates.description ?? base.description,
     startDate: newStart,
+    timeZone: updates.timeZone ?? eventTimeZone(base),
     endDate: newEnd,
     location: updates.location ?? base.location,
     meetingType: updates.meetingType ?? base.meetingType,
@@ -296,15 +236,14 @@ export async function updateEventFuture(
   const base = events[idx];
 
   // If editing from the very first occurrence, just update the whole event
-  if (new Date(fromDate).toDateString() === new Date(base.startDate).toDateString()) {
+  if (eventDateKey(fromDate, eventTimeZone(base)) === eventDateKey(base.startDate, eventTimeZone(base))) {
     events[idx] = { ...base, ...updates };
     await persistEvents(events);
     return events[idx];
   }
 
-  // Truncate the original series one day before fromDate
-  const cutoff = new Date(fromDate);
-  cutoff.setDate(cutoff.getDate() - 1);
+  // Truncate the original series immediately before the selected occurrence
+  const cutoff = new Date(new Date(fromDate).getTime() - 1);
   events[idx] = {
     ...base,
     recurrence: base.recurrence
@@ -323,6 +262,7 @@ export async function updateEventFuture(
     title: updates.title ?? base.title,
     description: updates.description ?? base.description,
     startDate: newStart,
+    timeZone: updates.timeZone ?? eventTimeZone(base),
     endDate: newEnd,
     location: updates.location ?? base.location,
     meetingType: updates.meetingType ?? base.meetingType,
@@ -363,15 +303,14 @@ export async function deleteEventFuture(eventId: string, fromDate: string): Prom
   const base = events[idx];
 
   // If this is the very first occurrence, delete the whole event
-  if (new Date(fromDate).toDateString() === new Date(base.startDate).toDateString()) {
+  if (eventDateKey(fromDate, eventTimeZone(base)) === eventDateKey(base.startDate, eventTimeZone(base))) {
     const filtered = events.filter((e) => e.id !== baseId);
     await persistEvents(filtered);
     return true;
   }
 
-  // Otherwise set recurrence end to the day before fromDate
-  const cutoff = new Date(fromDate);
-  cutoff.setDate(cutoff.getDate() - 1);
+  // Otherwise end recurrence immediately before the selected occurrence
+  const cutoff = new Date(new Date(fromDate).getTime() - 1);
   events[idx] = {
     ...base,
     recurrence: base.recurrence
@@ -391,7 +330,7 @@ export async function hideEventOccurrence(eventId: string, occurrenceDate: strin
   const idx = events.findIndex((e) => e.id === baseId);
   if (idx === -1) return null;
   const hiddenDates = events[idx].hiddenDates ?? [];
-  if (!hiddenDates.some((d) => new Date(d).toDateString() === new Date(occurrenceDate).toDateString())) {
+  if (!hiddenDates.some((d) => eventDateKey(d, eventTimeZone(events[idx])) === eventDateKey(occurrenceDate, eventTimeZone(events[idx])))) {
     hiddenDates.push(occurrenceDate);
   }
   events[idx] = { ...events[idx], hiddenDates };
