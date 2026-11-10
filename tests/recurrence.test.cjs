@@ -197,3 +197,19 @@ test('link-only edit of a later occurrence preserves original series anchor and 
   assert.equal(response.status,200);
   assert.deepEqual(f.state.events[0],{...original,meetingLink:'https://example.com/corrected-invite'});
 });
+
+
+test('changing one selected occurrence date retains paired start/end when editing all', async () => {
+  const original=base('2026-10-19T23:00:00Z');
+  for(const which of ['startDate','endDate']) {
+    const f=fixture([original]);
+    const selected=f.load('lib/recurrence.ts').expandRecurringEvent(original,new Date('2026-11-09T12:00:00Z'))[3];
+    const form={startDate:selected.startDate,endDate:selected.endDate};
+    form[which]=new Date(Date.parse(form[which])+(which==='endDate'?3600000:-3600000)).toISOString();
+    const updates=f.load('lib/event-changes.ts').changedEventFields(selected,form);
+    assert.deepEqual(updates,form);
+    const response=await f.load('app/api/events/[eventId]/route.ts').PATCH({json:async()=>({...updates,mode:'all',occurrenceDate:selected.startDate})},{params:Promise.resolve({eventId:selected.id})});
+    assert.equal(response.status,200);
+    assert.equal(Date.parse(f.state.events[0].endDate)-Date.parse(f.state.events[0].startDate),7200000);
+  }
+});
