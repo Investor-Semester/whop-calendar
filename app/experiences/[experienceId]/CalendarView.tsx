@@ -1,5 +1,6 @@
 "use client";
 
+import { changedEventFields } from "@/lib/event-changes";
 import { useState, useCallback } from "react";
 import type { CalendarEvent } from "@/lib/events-store";
 import Calendar from "@/components/Calendar";
@@ -109,7 +110,7 @@ export default function CalendarView({
     const res = await fetch(`/api/events/${editingEvent.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...formData, mode: editMode, occurrenceDate: editingEvent.startDate }),
+      body: JSON.stringify({ ...changedEventFields(editingEvent, formData), mode: editMode, occurrenceDate: editingEvent.startDate }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to update event");

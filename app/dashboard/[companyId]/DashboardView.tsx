@@ -1,5 +1,6 @@
 "use client";
 
+import { changedEventFields } from "@/lib/event-changes";
 import { useState } from "react";
 import type { CalendarEvent } from "@/lib/events-store";
 import CreateEventModal from "@/components/CreateEventModal";
@@ -78,7 +79,7 @@ export default function DashboardView({ companyId, userId }: DashboardViewProps)
     const res = await fetch(`/api/events/${editingEvent.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(formData),
+      body: JSON.stringify(changedEventFields(editingEvent, formData)),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || "Failed to update event");

@@ -181,3 +181,19 @@ test('unchanged edit preserves exact fold instant, split cutoff, and finite coun
   assert.equal(saved.recurrence.endDate,event.recurrence.endDate);
   assert.equal(saved.recurrence.count,4);
 });
+
+
+test('link-only edit of a later occurrence preserves original series anchor and metadata', async () => {
+  const original=base('2026-10-19T23:00:00Z', {hiddenDates:['2026-10-26T23:00:00Z'],excludedDates:['2026-11-02T23:00:00Z']});
+  const f=fixture([original]);
+  const selected=f.load('lib/recurrence.ts').expandRecurringEvent(original,new Date('2026-11-09T12:00:00Z')).find(e=>e.id==='evt_test_occ3');
+  const form={title:selected.title,description:selected.description,startDate:selected.startDate,endDate:selected.endDate,
+    timeZone:selected.timeZone,recurrence:selected.recurrence,maxAttendees:selected.maxAttendees,color:selected.color,
+    meetingLink:'https://example.com/corrected-invite'};
+  const updates=f.load('lib/event-changes.ts').changedEventFields(selected,form);
+  assert.deepEqual(updates,{meetingLink:'https://example.com/corrected-invite'});
+  const route=f.load('app/api/events/[eventId]/route.ts');
+  const response=await route.PATCH({json:async()=>({...updates,mode:'all',occurrenceDate:selected.startDate})},{params:Promise.resolve({eventId:selected.id})});
+  assert.equal(response.status,200);
+  assert.deepEqual(f.state.events[0],{...original,meetingLink:'https://example.com/corrected-invite'});
+});
